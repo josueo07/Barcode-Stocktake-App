@@ -1,0 +1,16 @@
+sku,barcode,name,expected_qty,category
+BEV-001,5012345678900,Sparkling Water 500ml,48,Beverages
+BEV-002,5012345678917,Cola Can 330ml,120,Beverages
+BEV-003,5012345678924,Orange Juice 1L,36,Beverages
+SNK-001,5012345678931,Salted Crisps 150g,60,Snacks
+SNK-002,5012345678948,Chocolate Bar 45g,200,Snacks
+SNK-003,5012345678955,Mixed Nuts 200g,40,Snacks
+GRO-001,5012345678962,Pasta Penne 500g,75,Grocery
+GRO-002,5012345678979,Tomato Sauce 400g,55,Grocery
+GRO-003,5012345678986,Olive Oil 750ml,25,Grocery
+GRO-004,5012345678993,Basmati Rice 1kg,30,Grocery
+HSH-001,5012345679006,Dish Soap 500ml,20,Household
+HSH-002,5012345679013,Paper Towels 2-pack,45,Household
+HSH-003,5012345679020,Laundry Detergent 1L,18,Household
+STA-001,5012345679037,Ballpoint Pens 10-pack,15,Stationery
+STA-002,5012345679044,Notebook A5,32,Stationery

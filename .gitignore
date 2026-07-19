@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Server runtime data
+server/data/*.sqlite
+server/data/*.sqlite-journal
+server/data/*.sqlite-shm
+server/data/*.sqlite-wal
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Test / coverage
+coverage/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Vite
+client/dist/
+client/.vite/

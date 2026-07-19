@@ -1,0 +1,157 @@
+import { and, eq, sql } from 'drizzle-orm';
+import type { BatchScanItemResult, LiveCount, ScanSubmission } from '@barcode-stocktake/shared';
+import type { AppDatabase } from '../db/client';
+import { products, scanEvents, sessionExpectedQuantities } from '../db/schema';
+
+type ScanEventRow = typeof scanEvents.$inferSelect;
+
+export interface RecordScanResult {
+  status: 'accepted' | 'duplicate';
+  scanEvent: ScanEventRow;
+  productId: number | null;
+  newCount: number;
+}
+
+/**
+ * Records a single scan, deduping on (sessionId, clientScanId) so retried offline-sync
+ * submissions of the same physical scan are safe no-ops rather than double counts.
+ */
+export function recordScan(
+  db: AppDatabase,
+  sessionId: number,
+  submission: ScanSubmission,
+): RecordScanResult {
+  const existing = db
+    .select()
+    .from(scanEvents)
+    .where(
+      and(eq(scanEvents.sessionId, sessionId), eq(scanEvents.clientScanId, submission.clientScanId)),
+    )
+    .get();
+
+  if (existing) {
+    return {
+      status: 'duplicate',
+      scanEvent: existing,
+      productId: existing.productId,
+      newCount: countForBarcode(db, sessionId, existing.barcode),
+    };
+  }
+
+  const product = db.select().from(products).where(eq(products.barcode, submission.barcode)).get();
+
+  const inserted = db
+    .insert(scanEvents)
+    .values({
+      sessionId,
+      productId: product?.id ?? null,
+      barcode: submission.barcode,
+      clientScanId: submission.clientScanId,
+      deviceLabel: submission.deviceLabel ?? null,
+      quantity: submission.quantity ?? 1,
+      scannedAt: submission.scannedAt,
+    })
+    .returning()
+    .get();
+
+  return {
+    status: 'accepted',
+    scanEvent: inserted,
+    productId: inserted.productId,
+    newCount: countForBarcode(db, sessionId, submission.barcode),
+  };
+}
+
+export function recordScanBatch(
+  db: AppDatabase,
+  sessionId: number,
+  submissions: ScanSubmission[],
+): { results: BatchScanItemResult[]; accepted: RecordScanResult[] } {
+  const results: BatchScanItemResult[] = [];
+  const accepted: RecordScanResult[] = [];
+
+  for (const submission of submissions) {
+    try {
+      const result = recordScan(db, sessionId, submission);
+      results.push({ clientScanId: submission.clientScanId, status: result.status });
+      if (result.status === 'accepted') {
+        accepted.push(result);
+      }
+    } catch (err) {
+      results.push({
+        clientScanId: submission.clientScanId,
+        status: 'error',
+        error: (err as Error).message,
+      });
+    }
+  }
+
+  return { results, accepted };
+}
+
+export function countForBarcode(db: AppDatabase, sessionId: number, barcode: string): number {
+  const row = db
+    .select({ total: sql<number>`coalesce(sum(${scanEvents.quantity}), 0)` })
+    .from(scanEvents)
+    .where(and(eq(scanEvents.sessionId, sessionId), eq(scanEvents.barcode, barcode)))
+    .get();
+  return row?.total ?? 0;
+}
+
+/** Live per-product counts for a session: expected quantity (if any) joined with counted-so-far. */
+export function getLiveCounts(db: AppDatabase, sessionId: number): LiveCount[] {
+  const countRows = db
+    .select({
+      barcode: scanEvents.barcode,
+      productId: scanEvents.productId,
+      countedQty: sql<number>`coalesce(sum(${scanEvents.quantity}), 0)`,
+    })
+    .from(scanEvents)
+    .where(eq(scanEvents.sessionId, sessionId))
+    .groupBy(scanEvents.barcode, scanEvents.productId)
+    .all();
+
+  const expectedRows = db
+    .select({
+      productId: sessionExpectedQuantities.productId,
+      expectedQty: sessionExpectedQuantities.expectedQty,
+      sku: products.sku,
+      barcode: products.barcode,
+      name: products.name,
+    })
+    .from(sessionExpectedQuantities)
+    .innerJoin(products, eq(sessionExpectedQuantities.productId, products.id))
+    .where(eq(sessionExpectedQuantities.sessionId, sessionId))
+    .all();
+
+  const byBarcode = new Map<string, LiveCount>();
+
+  for (const row of expectedRows) {
+    byBarcode.set(row.barcode, {
+      productId: row.productId,
+      barcode: row.barcode,
+      sku: row.sku,
+      name: row.name,
+      expectedQty: row.expectedQty,
+      countedQty: 0,
+    });
+  }
+
+  for (const row of countRows) {
+    const existing = byBarcode.get(row.barcode);
+    if (existing) {
+      existing.countedQty = row.countedQty;
+    } else {
+      byBarcode.set(row.barcode, {
+        productId: row.productId,
+        barcode: row.barcode,
+        sku: null,
+        name: null,
+        expectedQty: null,
+        countedQty: row.countedQty,
+      });
+    }
+  }
+
+  return Array.from(byBarcode.values()).sort((a, b) => a.barcode.localeCompare(b.barcode));
+}

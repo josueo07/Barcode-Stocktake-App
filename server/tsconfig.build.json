@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "noEmit": false,
+    // Clear the inherited "@barcode-stocktake/shared" -> ../shared/src alias for the real build:
+    // resolve it as a normal package (via the npm workspace symlink to shared/dist) instead, so
+    // shared's source files don't get pulled into this project and violate rootDir.
+    "paths": {}
+  },
+  "include": ["src"]
+}
