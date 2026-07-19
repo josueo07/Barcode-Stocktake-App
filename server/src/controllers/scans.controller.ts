@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import type { Server as SocketIOServer } from 'socket.io';
 import { MAX_BATCH_SCAN_SIZE, SOCKET_EVENTS, type ScanSubmission } from '@barcode-stocktake/shared';
 import type { AppDatabase } from '../db/client';
@@ -69,6 +69,24 @@ export function submitScanBatch(db: AppDatabase, io?: SocketIOServer): RequestHa
       const { results, accepted } = recordScanBatch(db, id, scans);
       accepted.forEach((result) => emitCountUpdate(io, id, result));
       res.json({ results });
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
+export function listScans(db: AppDatabase): RequestHandler {
+  return (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      getSessionOrThrow(db, id);
+      const scans = db
+        .select()
+        .from(scanEvents)
+        .where(eq(scanEvents.sessionId, id))
+        .orderBy(desc(scanEvents.scannedAt))
+        .all();
+      res.json({ scans });
     } catch (err) {
       next(err);
     }

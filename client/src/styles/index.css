@@ -131,6 +131,10 @@ td {
   gap: 0.5rem;
 }
 
+.session-list li {
+  position: relative;
+}
+
 .session-list a {
   display: flex;
   justify-content: space-between;
@@ -141,6 +145,23 @@ td {
   border-radius: var(--radius);
   text-decoration: none;
   color: var(--color-text);
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-danger, #dc2626);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
+
+.session-delete-button {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .session-header {

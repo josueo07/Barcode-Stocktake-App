@@ -7,6 +7,8 @@ import { validateBody } from '../middleware/validateRequest';
 import {
   addManualExpectedQuantity,
   createSession,
+  deleteExpectedQuantity,
+  deleteSession,
   getSession,
   importSessionCsv,
   listExpectedQuantities,
@@ -41,6 +43,7 @@ export function createSessionsRouter(db: AppDatabase, io?: SocketIOServer): Rout
   router.post('/', validateBody(createSessionSchema), createSession(db));
   router.get('/:id', getSession(db));
   router.patch('/:id', validateBody(updateSessionSchema), updateSession(db, io));
+  router.delete('/:id', deleteSession(db));
 
   router.post('/:id/import-csv', upload.single('file'), importSessionCsv(db, io));
   router.get('/:id/expected-quantities', listExpectedQuantities(db));
@@ -49,6 +52,7 @@ export function createSessionsRouter(db: AppDatabase, io?: SocketIOServer): Rout
     validateBody(manualExpectedQtySchema),
     addManualExpectedQuantity(db, io),
   );
+  router.delete('/:id/expected-quantities/:productId', deleteExpectedQuantity(db, io));
 
   return router;
 }

@@ -14,3 +14,10 @@ export interface CreateProductInput {
   name: string;
   category?: string | null;
 }
+
+export interface UpdateProductInput {
+  sku?: string;
+  barcode?: string;
+  name?: string;
+  category?: string | null;
+}

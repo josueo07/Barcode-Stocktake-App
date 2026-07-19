@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent, type MouseEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { StocktakeSession } from '@barcode-stocktake/shared';
-import { createSession, listSessions } from '../api/sessions';
+import { createSession, deleteSession, listSessions } from '../api/sessions';
 import { ErrorBanner } from '../components/common/ErrorBanner';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { SessionStatusBadge } from '../components/dashboard/SessionStatusBadge';
@@ -25,6 +25,17 @@ export function SessionListPage() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  const handleDelete = async (e: MouseEvent, sessionId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await deleteSession(sessionId);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete session');
+    }
+  };
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -72,6 +83,16 @@ export function SessionListPage() {
                 <span className="session-list-name">{session.name}</span>
                 <SessionStatusBadge status={session.status} />
               </Link>
+              {session.status === 'draft' && (
+                <button
+                  type="button"
+                  className="link-button session-delete-button"
+                  title="Delete this draft session"
+                  onClick={(e) => handleDelete(e, session.id)}
+                >
+                  Delete
+                </button>
+              )}
             </li>
           ))}
         </ul>

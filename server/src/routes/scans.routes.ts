@@ -7,6 +7,7 @@ import {
   exportVarianceReport,
   getCounts,
   getVarianceReport,
+  listScans,
   submitScan,
   submitScanBatch,
   voidScan,
@@ -29,6 +30,7 @@ export function createScansRouter(db: AppDatabase, io?: SocketIOServer): Router 
 
   router.post('/:id/scans', validateBody(scanSubmissionSchema), submitScan(db, io));
   router.post('/:id/scans/batch', validateBody(batchScanSchema), submitScanBatch(db, io));
+  router.get('/:id/scans', listScans(db));
   router.get('/:id/counts', getCounts(db));
   router.delete('/:id/scans/:scanId', voidScan(db, io));
   router.get('/:id/variance-report', getVarianceReport(db));

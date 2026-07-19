@@ -2,7 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import type { AppDatabase } from '../db/client';
 import { validateBody } from '../middleware/validateRequest';
-import { createProduct, getProductByBarcode, listProducts } from '../controllers/products.controller';
+import {
+  createProduct,
+  deleteProduct,
+  getProductByBarcode,
+  listProducts,
+  updateProduct,
+} from '../controllers/products.controller';
 
 const createProductSchema = z.object({
   sku: z.string().min(1),
@@ -11,12 +17,21 @@ const createProductSchema = z.object({
   category: z.string().min(1).nullable().optional(),
 });
 
+const updateProductSchema = z.object({
+  sku: z.string().min(1).optional(),
+  barcode: z.string().min(1).optional(),
+  name: z.string().min(1).optional(),
+  category: z.string().min(1).nullable().optional(),
+});
+
 export function createProductsRouter(db: AppDatabase): Router {
   const router = Router();
 
   router.get('/', listProducts(db));
-  router.get('/:barcode', getProductByBarcode(db));
   router.post('/', validateBody(createProductSchema), createProduct(db));
+  router.patch('/:id', validateBody(updateProductSchema), updateProduct(db));
+  router.delete('/:id', deleteProduct(db));
+  router.get('/:barcode', getProductByBarcode(db));
 
   return router;
 }

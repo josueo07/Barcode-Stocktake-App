@@ -1,4 +1,4 @@
-export type { Product, CreateProductInput } from './types/product';
+export type { Product, CreateProductInput, UpdateProductInput } from './types/product';
 
 export type {
   SessionStatus,

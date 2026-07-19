@@ -1,6 +1,7 @@
 import type {
   BatchScanResponse,
   LiveCount,
+  ScanEvent,
   ScanSubmission,
   VarianceReport,
 } from '@barcode-stocktake/shared';
@@ -24,6 +25,10 @@ export function getCounts(sessionId: number): Promise<LiveCount[]> {
 
 export function voidScan(sessionId: number, scanId: number): Promise<void> {
   return httpClient.delete(`/api/sessions/${sessionId}/scans/${scanId}`);
+}
+
+export function listScans(sessionId: number): Promise<ScanEvent[]> {
+  return httpClient.get<{ scans: ScanEvent[] }>(`/api/sessions/${sessionId}/scans`).then((r) => r.scans);
 }
 
 export function getVarianceReport(sessionId: number): Promise<VarianceReport> {

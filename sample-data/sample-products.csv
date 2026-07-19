@@ -2,15 +2,30 @@ sku,barcode,name,expected_qty,category
 BEV-001,5012345678900,Sparkling Water 500ml,48,Beverages
 BEV-002,5012345678917,Cola Can 330ml,120,Beverages
 BEV-003,5012345678924,Orange Juice 1L,36,Beverages
-SNK-001,5012345678931,Salted Crisps 150g,60,Snacks
-SNK-002,5012345678948,Chocolate Bar 45g,200,Snacks
-SNK-003,5012345678955,Mixed Nuts 200g,40,Snacks
-GRO-001,5012345678962,Pasta Penne 500g,75,Grocery
-GRO-002,5012345678979,Tomato Sauce 400g,55,Grocery
-GRO-003,5012345678986,Olive Oil 750ml,25,Grocery
-GRO-004,5012345678993,Basmati Rice 1kg,30,Grocery
-HSH-001,5012345679006,Dish Soap 500ml,20,Household
-HSH-002,5012345679013,Paper Towels 2-pack,45,Household
-HSH-003,5012345679020,Laundry Detergent 1L,18,Household
-STA-001,5012345679037,Ballpoint Pens 10-pack,15,Stationery
-STA-002,5012345679044,Notebook A5,32,Stationery
+BEV-004,5012345678931,Still Water 1.5L,64,Beverages
+BEV-005,5012345678948,Energy Drink 250ml,90,Beverages
+BEV-006,5012345678955,Ground Coffee 250g,28,Beverages
+BEV-007,5012345678962,Green Tea 20-bag,42,Beverages
+SNK-001,5012345678979,Salted Crisps 150g,60,Snacks
+SNK-002,5012345678986,Chocolate Bar 45g,200,Snacks
+SNK-003,5012345678993,Mixed Nuts 200g,40,Snacks
+SNK-004,5012345679006,Popcorn 100g,55,Snacks
+SNK-005,5012345679013,Granola Bar 6-pack,70,Snacks
+SNK-006,5012345679020,Digestive Biscuits 300g,35,Snacks
+GRO-001,5012345679037,Pasta Penne 500g,75,Grocery
+GRO-002,5012345679044,Tomato Sauce 400g,55,Grocery
+GRO-003,5012345679051,Olive Oil 750ml,25,Grocery
+GRO-004,5012345679068,Basmati Rice 1kg,30,Grocery
+GRO-005,5012345679075,Plain Flour 1.5kg,22,Grocery
+GRO-006,5012345679082,Caster Sugar 1kg,26,Grocery
+GRO-007,5012345679099,Baked Beans 415g,80,Grocery
+GRO-008,5012345679105,Breakfast Cereal 500g,38,Grocery
+HSH-001,5012345679112,Dish Soap 500ml,20,Household
+HSH-002,5012345679129,Paper Towels 2-pack,45,Household
+HSH-003,5012345679136,Laundry Detergent 1L,18,Household
+HSH-004,5012345679143,Bin Bags 30-pack,33,Household
+HSH-005,5012345679150,All-Purpose Cleaner 750ml,24,Household
+STA-001,5012345679167,Ballpoint Pens 10-pack,15,Stationery
+STA-002,5012345679174,Notebook A5,32,Stationery
+STA-003,5012345679181,Sticky Notes 3-pack,50,Stationery
+STA-004,5012345679198,Printer Paper 500-sheet,19,Stationery

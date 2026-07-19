@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Server as SocketIOServer } from 'socket.io';
 import { SOCKET_EVENTS, type SessionStatus } from '@barcode-stocktake/shared';
 import type { AppDatabase } from '../db/client';
@@ -85,6 +85,30 @@ export function updateSession(db: AppDatabase, io?: SocketIOServer): RequestHand
       }
 
       res.json({ session });
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
+export function deleteSession(db: AppDatabase): RequestHandler {
+  return (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = getSessionOrThrow(db, id);
+
+      if (existing.status !== 'draft') {
+        next(
+          new AppError(
+            `Cannot delete session ${id}: only sessions in "draft" status can be deleted (this one is "${existing.status}"). Stocktake history is preserved once a session starts.`,
+            409,
+          ),
+        );
+        return;
+      }
+
+      db.delete(stocktakeSessions).where(eq(stocktakeSessions.id, id)).run();
+      res.status(204).send();
     } catch (err) {
       next(err);
     }
@@ -180,6 +204,37 @@ export function addManualExpectedQuantity(db: AppDatabase, io?: SocketIOServer):
       io?.to(`session:${id}`).emit(SOCKET_EVENTS.EXPECTED_QTY_UPDATED, { sessionId: id });
 
       res.status(201).json({ productId: product.id, expectedQty });
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
+export function deleteExpectedQuantity(db: AppDatabase, io?: SocketIOServer): RequestHandler {
+  return (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      getSessionOrThrow(db, id);
+
+      const productId = Number(req.params.productId);
+      const deleted = db
+        .delete(sessionExpectedQuantities)
+        .where(
+          and(
+            eq(sessionExpectedQuantities.sessionId, id),
+            eq(sessionExpectedQuantities.productId, productId),
+          ),
+        )
+        .returning()
+        .get();
+
+      if (!deleted) {
+        next(new AppError(`No expected-quantity entry for product ${productId} in session ${id}`, 404));
+        return;
+      }
+
+      io?.to(`session:${id}`).emit(SOCKET_EVENTS.EXPECTED_QTY_UPDATED, { sessionId: id });
+      res.status(204).send();
     } catch (err) {
       next(err);
     }

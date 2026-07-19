@@ -45,7 +45,7 @@ HTTP/LAN** — read that before you assume the camera is broken.
 client/    React PWA — scanning UI, live dashboard, variance report
 server/    Express API + Socket.io + SQLite
 shared/    TypeScript types shared by both (the API contract)
-sample-data/  Sample CSV for demoing/import testing
+sample-data/  Sample CSVs for demoing/import testing (clean, with-errors, restock-update)
 docs/      Architecture, API reference, offline-sync design notes
 ```
 
@@ -115,12 +115,35 @@ Full explanation: [docs/architecture.md](./docs/architecture.md#a-real-constrain
 ## Typical workflow
 
 1. On the PC dashboard, create a new session and **Import CSV** (try
-   `sample-data/sample-products.csv`) or add expected quantities manually.
+   `sample-data/sample-products.csv`, a 30-item catalog across 5 categories) or add expected
+   quantities manually.
 2. Click **Start session**.
 3. On your phone, open the session's **Scan** tab and start scanning. Counts update live on
    the PC dashboard as you go.
 4. Click **Complete session** when done — this freezes a variance report snapshot.
 5. View or export the **Report** tab (expected vs. counted vs. variance, CSV download).
+
+### More sample data for testing
+
+| File | Purpose |
+|---|---|
+| `sample-data/sample-products.csv` | Main demo catalog — 30 products across Beverages, Snacks, Grocery, Household, Stationery |
+| `sample-data/sample-products-with-errors.csv` | 8 rows, 3 valid / 5 intentionally broken (missing barcode, non-numeric qty, negative qty, missing sku, missing qty) — import this to see the partial-import error report in action |
+| `sample-data/sample-restock-update.csv` | Re-imports 3 existing barcodes with updated quantities/names plus 1 new item — demonstrates that CSV import **upserts** rather than duplicating |
+
+## CRUD coverage
+
+Every domain entity supports full create/read/update/delete, either directly or through a
+deliberate, documented restriction that protects stocktake history from accidental data loss:
+
+| Entity | Create | Read | Update | Delete |
+|---|---|---|---|---|
+| Products | `POST /api/products` | `GET /api/products`, `GET /api/products/:barcode` | `PATCH /api/products/:id` | `DELETE /api/products/:id` (blocked with `409` if referenced by any expected-quantity row or scan) |
+| Sessions | `POST /api/sessions` | `GET /api/sessions`, `GET /api/sessions/:id` | `PATCH /api/sessions/:id` | `DELETE /api/sessions/:id` (only while `status: draft`) |
+| Expected quantities | `POST /api/sessions/:id/expected-quantities`, CSV import | `GET /api/sessions/:id/expected-quantities` | `POST .../expected-quantities` again (upsert) | `DELETE /api/sessions/:id/expected-quantities/:productId` |
+| Scan events | `POST /api/sessions/:id/scans(/batch)` | `GET /api/sessions/:id/scans`, `GET /api/sessions/:id/counts` | *(intentionally none — append-only; correct via void + rescan)* | `DELETE /api/sessions/:id/scans/:scanId` |
+
+See [docs/api.md](./docs/api.md) for full request/response shapes.
 
 ## Testing
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { LiveCount, SessionStatus } from '@barcode-stocktake/shared';
 import { SOCKET_EVENTS } from '@barcode-stocktake/shared';
 import { getCounts } from '../api/scans';
-import { updateSession } from '../api/sessions';
+import { deleteExpectedQuantity, updateSession } from '../api/sessions';
 import { ErrorBanner } from '../components/common/ErrorBanner';
 import { LiveCountTable } from '../components/dashboard/LiveCountTable';
 import { CsvUploadForm } from '../components/import/CsvUploadForm';
@@ -50,6 +50,15 @@ export function SessionDashboardPage() {
 
   const nextStatus = NEXT_STATUS[session.status];
 
+  const handleRemoveExpected = async (productId: number) => {
+    try {
+      await deleteExpectedQuantity(session.id, productId);
+      await refreshCounts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove expected quantity');
+    }
+  };
+
   const handleAdvanceStatus = async () => {
     if (!nextStatus) return;
     setIsChangingStatus(true);
@@ -86,7 +95,10 @@ export function SessionDashboardPage() {
 
       <section className="dashboard-counts">
         <h2>Live counts</h2>
-        <LiveCountTable counts={counts} />
+        <LiveCountTable
+          counts={counts}
+          onRemoveExpected={session.status !== 'completed' ? handleRemoveExpected : undefined}
+        />
       </section>
     </div>
   );

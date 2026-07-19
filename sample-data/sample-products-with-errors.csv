@@ -1,0 +1,9 @@
+sku,barcode,name,expected_qty,category
+BEV-101,5019876543210,Apple Juice 1L,40,Beverages
+BEV-102,,Missing Barcode Drink,10,Beverages
+SNK-101,5019876543227,Trail Mix 200g,not-a-number,Snacks
+SNK-102,5019876543234,Rice Cakes 6-pack,-5,Snacks
+GRO-101,5019876543241,Canned Tomatoes 400g,65,Grocery
+,5019876543258,Missing SKU Item,12,Grocery
+GRO-102,5019876543265,Peanut Butter 340g,,Grocery
+HSH-101,5019876543272,Sponges 4-pack,50,Household

@@ -46,3 +46,11 @@ export function addManualExpectedQuantity(
 ): Promise<{ productId: number; expectedQty: number }> {
   return httpClient.post(`/api/sessions/${id}/expected-quantities`, input);
 }
+
+export function deleteExpectedQuantity(sessionId: number, productId: number): Promise<void> {
+  return httpClient.delete(`/api/sessions/${sessionId}/expected-quantities/${productId}`);
+}
+
+export function deleteSession(id: number): Promise<void> {
+  return httpClient.delete(`/api/sessions/${id}`);
+}

@@ -208,4 +208,180 @@ describe('Stocktake API', () => {
     expect(res.body.session.status).toBe('completed');
     expect(res.body.session.completedAt).toBeTruthy();
   });
+
+  describe('Product CRUD', () => {
+    it('creates, reads, updates, and deletes a product', async () => {
+      const createRes = await request(ctx.app)
+        .post('/api/products')
+        .send({ sku: 'CRUD-1', barcode: '1000000000001', name: 'Widget', category: 'Test' });
+      expect(createRes.status).toBe(201);
+      const productId = createRes.body.product.id;
+
+      const getRes = await request(ctx.app).get('/api/products/1000000000001');
+      expect(getRes.status).toBe(200);
+      expect(getRes.body.product).toMatchObject({ sku: 'CRUD-1', name: 'Widget' });
+
+      const updateRes = await request(ctx.app)
+        .patch(`/api/products/${productId}`)
+        .send({ name: 'Widget v2', category: 'Updated' });
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.product).toMatchObject({ name: 'Widget v2', category: 'Updated' });
+
+      const deleteRes = await request(ctx.app).delete(`/api/products/${productId}`);
+      expect(deleteRes.status).toBe(204);
+
+      const afterDelete = await request(ctx.app).get('/api/products/1000000000001');
+      expect(afterDelete.status).toBe(404);
+    });
+
+    it('rejects updating a product to a barcode that already exists', async () => {
+      await request(ctx.app)
+        .post('/api/products')
+        .send({ sku: 'CRUD-A', barcode: '2000000000001', name: 'Product A' });
+      const bRes = await request(ctx.app)
+        .post('/api/products')
+        .send({ sku: 'CRUD-B', barcode: '2000000000002', name: 'Product B' });
+
+      const res = await request(ctx.app)
+        .patch(`/api/products/${bRes.body.product.id}`)
+        .send({ barcode: '2000000000001' });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('returns 404 when updating or deleting a product that does not exist', async () => {
+      const updateRes = await request(ctx.app).patch('/api/products/999999').send({ name: 'x' });
+      expect(updateRes.status).toBe(404);
+
+      const deleteRes = await request(ctx.app).delete('/api/products/999999');
+      expect(deleteRes.status).toBe(404);
+    });
+
+    it('refuses to delete a product referenced by an expected-quantity row', async () => {
+      const sessionRes = await request(ctx.app).post('/api/sessions').send({ name: 'Referenced Product Test' });
+      const sessionId = sessionRes.body.session.id;
+
+      const addRes = await request(ctx.app).post(`/api/sessions/${sessionId}/expected-quantities`).send({
+        barcode: '3000000000001',
+        expectedQty: 5,
+        sku: 'CRUD-REF',
+        name: 'Referenced Product',
+      });
+      const productId = addRes.body.productId;
+
+      const deleteRes = await request(ctx.app).delete(`/api/products/${productId}`);
+      expect(deleteRes.status).toBe(409);
+      expect(deleteRes.body.error.message).toMatch(/referenced by/i);
+    });
+
+    it('refuses to delete a product referenced by a scan event', async () => {
+      const sessionRes = await request(ctx.app).post('/api/sessions').send({ name: 'Referenced Scan Test' });
+      const sessionId = sessionRes.body.session.id;
+
+      const productRes = await request(ctx.app)
+        .post('/api/products')
+        .send({ sku: 'CRUD-SCANNED', barcode: '3000000000002', name: 'Scanned Product' });
+
+      await request(ctx.app)
+        .post(`/api/sessions/${sessionId}/scans`)
+        .send({ clientScanId: uuidv4(), barcode: '3000000000002', scannedAt: new Date().toISOString() });
+
+      const deleteRes = await request(ctx.app).delete(`/api/products/${productRes.body.product.id}`);
+      expect(deleteRes.status).toBe(409);
+    });
+  });
+
+  describe('Session delete', () => {
+    it('deletes a draft session', async () => {
+      const sessionRes = await request(ctx.app).post('/api/sessions').send({ name: 'Draft To Delete' });
+      const sessionId = sessionRes.body.session.id;
+
+      const deleteRes = await request(ctx.app).delete(`/api/sessions/${sessionId}`);
+      expect(deleteRes.status).toBe(204);
+
+      const getRes = await request(ctx.app).get(`/api/sessions/${sessionId}`);
+      expect(getRes.status).toBe(404);
+    });
+
+    it('refuses to delete an active or completed session', async () => {
+      const sessionRes = await request(ctx.app).post('/api/sessions').send({ name: 'Active Session' });
+      const sessionId = sessionRes.body.session.id;
+      await request(ctx.app).patch(`/api/sessions/${sessionId}`).send({ status: 'active' });
+
+      const deleteRes = await request(ctx.app).delete(`/api/sessions/${sessionId}`);
+      expect(deleteRes.status).toBe(409);
+
+      const getRes = await request(ctx.app).get(`/api/sessions/${sessionId}`);
+      expect(getRes.status).toBe(200);
+    });
+
+    it('returns 404 when deleting a session that does not exist', async () => {
+      const res = await request(ctx.app).delete('/api/sessions/999999');
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('Expected-quantity delete', () => {
+    it('removes one expected-quantity row without affecting others', async () => {
+      const sessionRes = await request(ctx.app).post('/api/sessions').send({ name: 'EQ Delete Test' });
+      const sessionId = sessionRes.body.session.id;
+
+      const keepRes = await request(ctx.app).post(`/api/sessions/${sessionId}/expected-quantities`).send({
+        barcode: '4000000000001',
+        expectedQty: 10,
+        sku: 'EQ-KEEP',
+        name: 'Keep Me',
+      });
+      const removeRes = await request(ctx.app).post(`/api/sessions/${sessionId}/expected-quantities`).send({
+        barcode: '4000000000002',
+        expectedQty: 20,
+        sku: 'EQ-REMOVE',
+        name: 'Remove Me',
+      });
+
+      const deleteRes = await request(ctx.app).delete(
+        `/api/sessions/${sessionId}/expected-quantities/${removeRes.body.productId}`,
+      );
+      expect(deleteRes.status).toBe(204);
+
+      const listRes = await request(ctx.app).get(`/api/sessions/${sessionId}/expected-quantities`);
+      expect(listRes.body.expectedQuantities).toHaveLength(1);
+      expect(listRes.body.expectedQuantities[0].productId).toBe(keepRes.body.productId);
+    });
+
+    it('returns 404 removing an expected-quantity row that does not exist', async () => {
+      const sessionRes = await request(ctx.app).post('/api/sessions').send({ name: 'EQ Delete 404 Test' });
+      const sessionId = sessionRes.body.session.id;
+
+      const res = await request(ctx.app).delete(`/api/sessions/${sessionId}/expected-quantities/999999`);
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('Scan events list', () => {
+    it('lists raw scan events for a session, most recent first', async () => {
+      const sessionRes = await request(ctx.app).post('/api/sessions').send({ name: 'Scan List Test' });
+      const sessionId = sessionRes.body.session.id;
+
+      const first = { clientScanId: uuidv4(), barcode: '5000000000001', scannedAt: '2026-01-01T00:00:00.000Z' };
+      const second = { clientScanId: uuidv4(), barcode: '5000000000002', scannedAt: '2026-01-01T00:05:00.000Z' };
+      await request(ctx.app).post(`/api/sessions/${sessionId}/scans`).send(first);
+      await request(ctx.app).post(`/api/sessions/${sessionId}/scans`).send(second);
+
+      const listRes = await request(ctx.app).get(`/api/sessions/${sessionId}/scans`);
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.scans).toHaveLength(2);
+      expect(listRes.body.scans[0].barcode).toBe('5000000000002');
+      expect(listRes.body.scans[1].barcode).toBe('5000000000001');
+    });
+
+    it('returns an empty list for a session with no scans', async () => {
+      const sessionRes = await request(ctx.app).post('/api/sessions').send({ name: 'Empty Scan List Test' });
+      const sessionId = sessionRes.body.session.id;
+
+      const listRes = await request(ctx.app).get(`/api/sessions/${sessionId}/scans`);
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.scans).toEqual([]);
+    });
+  });
 });

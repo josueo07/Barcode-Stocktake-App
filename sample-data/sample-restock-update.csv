@@ -1,0 +1,5 @@
+sku,barcode,name,expected_qty,category
+BEV-001,5012345678900,Sparkling Water 500ml,72,Beverages
+SNK-002,5012345678986,Chocolate Bar 45g,150,Snacks
+GRO-003,5012345679051,Extra Virgin Olive Oil 750ml,25,Grocery
+STA-005,5012345679204,Highlighter 4-pack,20,Stationery

@@ -1,4 +1,4 @@
-import type { Product } from '@barcode-stocktake/shared';
+import type { CreateProductInput, Product, UpdateProductInput } from '@barcode-stocktake/shared';
 import { ApiError, httpClient } from './httpClient';
 
 export function searchProducts(search: string): Promise<Product[]> {
@@ -16,4 +16,16 @@ export async function getProductByBarcode(barcode: string): Promise<Product | nu
     }
     throw err;
   }
+}
+
+export function createProduct(input: CreateProductInput): Promise<Product> {
+  return httpClient.post<{ product: Product }>('/api/products', input).then((r) => r.product);
+}
+
+export function updateProduct(id: number, input: UpdateProductInput): Promise<Product> {
+  return httpClient.patch<{ product: Product }>(`/api/products/${id}`, input).then((r) => r.product);
+}
+
+export function deleteProduct(id: number): Promise<void> {
+  return httpClient.delete(`/api/products/${id}`);
 }
