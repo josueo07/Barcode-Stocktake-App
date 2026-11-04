@@ -8,6 +8,22 @@ used to take days.
 Built as a full-stack TypeScript portfolio project with a real backend, real tests, offline
 support, and CI — not just a UI demo.
 
+## Screenshots
+
+_A demo session seeded from `sample-data/sample-products.csv`. The scan screenshot is a real camera scan: the scanner decoded the barcode from a test video feed._
+
+![Scanning on a phone: the barcode is decoded and the running total updates](docs/screenshots/stocktake-scan-phone.png)
+*Scanning on a phone: the barcode is decoded and the running total updates*
+
+![Live counts dashboard, with CSV import and manual expected quantities](docs/screenshots/stocktake-dashboard.png)
+*Live counts dashboard, with CSV import and manual expected quantities*
+
+![Variance report: expected vs counted, exportable as CSV](docs/screenshots/stocktake-report.png)
+*Variance report: expected vs counted, exportable as CSV*
+
+![Stocktake sessions](docs/screenshots/stocktake-sessions.png)
+*Stocktake sessions*
+
 ## Features
 
 - 📷 **Scan with your phone or a PC webcam** — barcode detection via `@ericblade/quagga2`
