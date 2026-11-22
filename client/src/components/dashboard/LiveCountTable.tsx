@@ -8,7 +8,7 @@ interface LiveCountTableProps {
 
 export function LiveCountTable({ counts, onRemoveExpected }: LiveCountTableProps) {
   if (counts.length === 0) {
-    return <p className="empty-state">No expected quantities or scans yet for this session.</p>;
+    return <p className="empty-state">Todavía no hay esperados ni escaneos en este conteo.</p>;
   }
 
   return (
@@ -16,16 +16,19 @@ export function LiveCountTable({ counts, onRemoveExpected }: LiveCountTableProps
       <thead>
         <tr>
           <th>SKU</th>
-          <th>Barcode</th>
-          <th>Name</th>
-          <th>Expected</th>
-          <th>Counted</th>
+          <th>Código</th>
+          <th>Producto</th>
+          <th>Esperado</th>
+          <th>Contado</th>
           {onRemoveExpected && <th />}
         </tr>
       </thead>
       <tbody>
         {counts.map((count) => (
-          <tr key={count.barcode} className={count.expectedQty === null ? 'row-unexpected' : undefined}>
+          <tr
+            key={count.barcode}
+            className={count.expectedQty === null ? 'row-unexpected' : undefined}
+          >
             <td>{count.sku ?? '—'}</td>
             <td>{count.barcode}</td>
             <td>{count.name ?? '(unmatched barcode)'}</td>
@@ -39,7 +42,7 @@ export function LiveCountTable({ counts, onRemoveExpected }: LiveCountTableProps
                     className="link-button"
                     onClick={() => onRemoveExpected(count.productId as number)}
                   >
-                    Remove
+                    Quitar
                   </button>
                 )}
               </td>

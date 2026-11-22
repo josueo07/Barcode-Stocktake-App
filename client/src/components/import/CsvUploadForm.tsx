@@ -24,7 +24,7 @@ export function CsvUploadForm({ sessionId, onImported }: CsvUploadFormProps) {
       setSummary(result);
       onImported();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'CSV import failed');
+      setError(err instanceof Error ? err.message : 'No se pudo importar el CSV');
     } finally {
       setIsSubmitting(false);
     }
@@ -33,16 +33,16 @@ export function CsvUploadForm({ sessionId, onImported }: CsvUploadFormProps) {
   return (
     <form className="csv-upload-form" onSubmit={handleSubmit}>
       <label>
-        Expected quantities CSV
+        Archivo CSV de esperados
         <input
           type="file"
           accept=".csv,text/csv"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
         />
       </label>
-      <p className="field-hint">Columns required: sku, barcode, name, expected_qty (category optional)</p>
+      <p className="field-hint">Columnas: sku, barcode, name, expected_qty (category opcional)</p>
       <button type="submit" disabled={!file || isSubmitting}>
-        {isSubmitting ? 'Importing…' : 'Import CSV'}
+        {isSubmitting ? 'Importando…' : 'Importar CSV'}
       </button>
 
       {error && (
@@ -54,15 +54,15 @@ export function CsvUploadForm({ sessionId, onImported }: CsvUploadFormProps) {
       {summary && (
         <div className="import-summary">
           <p>
-            Created {summary.productsCreated}, updated {summary.productsUpdated} products —{' '}
-            {summary.expectedQuantitiesWritten} expected quantities written, {summary.rowsSkipped} rows
-            skipped.
+            Productos nuevos: {summary.productsCreated}, actualizados: {summary.productsUpdated}.
+            Esperados guardados: {summary.expectedQuantitiesWritten}. Filas omitidas:{' '}
+            {summary.rowsSkipped}.
           </p>
           {summary.errors.length > 0 && (
             <ul className="import-errors">
               {summary.errors.map((rowError) => (
                 <li key={rowError.row}>
-                  Row {rowError.row}: {rowError.message}
+                  Fila {rowError.row}: {rowError.message}
                 </li>
               ))}
             </ul>

@@ -1,14 +1,16 @@
 import type { QueuedScan } from '../../db/offlineQueue';
 
 const STATUS_LABELS: Record<QueuedScan['status'], string> = {
-  pending: 'Queued',
-  synced: 'Synced',
-  failed: 'Failed',
+  pending: 'En cola',
+  synced: 'Enviado',
+  failed: 'Error',
 };
 
 export function RecentScansList({ scans }: { scans: QueuedScan[] }) {
   if (scans.length === 0) {
-    return <p className="empty-state">No scans yet — point the camera at a barcode.</p>;
+    return (
+      <p className="empty-state">Aún no hay escaneos. Apunta la cámara a un código de barras.</p>
+    );
   }
 
   return (

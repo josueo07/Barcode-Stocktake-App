@@ -431,3 +431,23 @@ td {
     flex-wrap: wrap;
   }
 }
+
+/* --- Phone layout fixes: keep forms inside the screen (no sideways scroll) --- */
+.form-row label {
+  min-width: 0;
+}
+
+.form-row input,
+.csv-upload-form input[type='file'],
+.login-form input,
+.user-form input,
+.user-form select {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .form-row {
+    flex-direction: column;
+  }
+}

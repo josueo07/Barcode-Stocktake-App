@@ -63,8 +63,7 @@ export function ScanPage() {
   if (session.status !== 'active') {
     return (
       <p className="scan-page-inactive">
-        This session is <strong>{session.status}</strong>. Start it from the Dashboard tab before
-        scanning.
+        Este conteo no está en curso. Un supervisor tiene que iniciarlo antes de escanear.
       </p>
     );
   }
@@ -76,11 +75,10 @@ export function ScanPage() {
       <BarcodeScanner active onDecode={handleDecode} deviceId={deviceId} />
       {lastConfirmed && (
         <p className="last-scan-feedback">
-          Last confirmed: <strong>{lastConfirmed.barcode}</strong> — running total{' '}
-          {lastConfirmed.count}
+          Último confirmado: <strong>{lastConfirmed.barcode}</strong>, total {lastConfirmed.count}
         </p>
       )}
-      <h2>Recent scans (this device)</h2>
+      <h2>Últimos escaneos (este teléfono)</h2>
       <RecentScansList scans={recentScans} />
     </div>
   );

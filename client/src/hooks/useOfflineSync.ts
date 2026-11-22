@@ -68,7 +68,7 @@ export function useOfflineSync(sessionId: number | null): OfflineSyncState {
         }),
       );
     } catch (err) {
-      setLastError(err instanceof Error ? err.message : 'Sync failed');
+      setLastError(err instanceof Error ? err.message : 'No se pudo enviar');
     } finally {
       setIsSyncing(false);
       await refreshPendingCount();

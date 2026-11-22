@@ -48,6 +48,6 @@ describe('VarianceReportTable', () => {
 
   it('renders an empty state when there are no rows', () => {
     render(<VarianceReportTable report={{ ...report, rows: [] }} />);
-    expect(screen.getByText(/no expected quantities or scans recorded/i)).toBeInTheDocument();
+    expect(screen.getByText(/no tiene esperados ni escaneos/i)).toBeInTheDocument();
   });
 });

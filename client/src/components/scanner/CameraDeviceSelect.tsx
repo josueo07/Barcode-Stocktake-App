@@ -26,10 +26,10 @@ export function CameraDeviceSelect({ value, onChange }: CameraDeviceSelectProps)
     <label className="camera-device-select">
       Camera
       <select value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)}>
-        <option value="">Default (rear camera)</option>
+        <option value="">Cámara trasera (predeterminada)</option>
         {devices.map((d) => (
           <option key={d.deviceId} value={d.deviceId}>
-            {d.label || `Camera ${d.deviceId.slice(0, 6)}`}
+            {d.label || `Cámara ${d.deviceId.slice(0, 6)}`}
           </option>
         ))}
       </select>

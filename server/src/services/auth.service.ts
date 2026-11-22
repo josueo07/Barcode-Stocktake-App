@@ -48,12 +48,12 @@ export interface CreateUserInput {
 
 export function createUser(db: AppDatabase, input: CreateUserInput): AuthUser {
   if (input.pin.length < MIN_PIN_LENGTH) {
-    throw new AppError(`PIN must be at least ${MIN_PIN_LENGTH} characters`, 400);
+    throw new AppError(`El PIN debe tener al menos ${MIN_PIN_LENGTH} caracteres.`, 400);
   }
   const username = normalizeUsername(input.username);
   const existing = db.select().from(users).where(eq(users.username, username)).get();
   if (existing) {
-    throw new AppError(`User "${username}" already exists`, 409);
+    throw new AppError(`Ya existe el usuario "${username}".`, 409);
   }
   const row = db
     .insert(users)

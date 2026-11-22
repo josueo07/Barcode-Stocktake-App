@@ -17,7 +17,7 @@ export function ManualEntryForm({ sessionId, onAdded }: ManualEntryFormProps) {
     e.preventDefault();
     const expectedQty = Number(form.expectedQty);
     if (!form.barcode.trim() || !Number.isInteger(expectedQty) || expectedQty < 0) {
-      setError('Barcode and a non-negative whole-number quantity are required.');
+      setError('Escribe el código y una cantidad entera de 0 o más.');
       return;
     }
 
@@ -33,7 +33,7 @@ export function ManualEntryForm({ sessionId, onAdded }: ManualEntryFormProps) {
       setForm(initialFormState);
       onAdded();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add expected quantity');
+      setError(err instanceof Error ? err.message : 'No se pudo guardar el esperado');
     } finally {
       setIsSubmitting(false);
     }
@@ -43,7 +43,7 @@ export function ManualEntryForm({ sessionId, onAdded }: ManualEntryFormProps) {
     <form className="manual-entry-form" onSubmit={handleSubmit}>
       <div className="form-row">
         <label>
-          Barcode
+          Código
           <input
             value={form.barcode}
             onChange={(e) => setForm({ ...form, barcode: e.target.value })}
@@ -51,7 +51,7 @@ export function ManualEntryForm({ sessionId, onAdded }: ManualEntryFormProps) {
           />
         </label>
         <label>
-          Expected qty
+          Cantidad esperada
           <input
             type="number"
             min={0}
@@ -63,20 +63,20 @@ export function ManualEntryForm({ sessionId, onAdded }: ManualEntryFormProps) {
         </label>
       </div>
       <p className="field-hint">
-        If the barcode is new, also provide SKU and name to create the product:
+        Si el código es nuevo, añade SKU y nombre para crear el producto:
       </p>
       <div className="form-row">
         <label>
-          SKU (new products only)
+          SKU (solo productos nuevos)
           <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
         </label>
         <label>
-          Name (new products only)
+          Nombre (solo productos nuevos)
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         </label>
       </div>
       <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Adding…' : 'Add / update expected quantity'}
+        {isSubmitting ? 'Guardando…' : 'Guardar esperado'}
       </button>
       {error && (
         <p className="form-error" role="alert">

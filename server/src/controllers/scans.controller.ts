@@ -23,7 +23,7 @@ import {
 function getSessionOrThrow(db: AppDatabase, id: number) {
   const session = db.select().from(stocktakeSessions).where(eq(stocktakeSessions.id, id)).get();
   if (!session) {
-    throw new AppError(`Session ${id} not found`, 404);
+    throw new AppError(`Conteo ${id} no encontrado (not found)`, 404);
   }
   return session;
 }
@@ -123,7 +123,7 @@ export function voidScan(db: AppDatabase, io?: SocketIOServer): RequestHandler {
       const id = Number(req.params.id);
       const session = getSessionOrThrow(db, id);
       if (session.status === 'completed') {
-        next(new AppError('This count is closed; scans can no longer be removed.', 409));
+        next(new AppError('Este conteo está cerrado; ya no se pueden borrar escaneos.', 409));
         return;
       }
 

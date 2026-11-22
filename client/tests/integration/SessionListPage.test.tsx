@@ -60,10 +60,10 @@ describe('SessionListPage', () => {
     const activeItem = items.find((li) => li.textContent?.includes('Active Session'));
 
     expect(
-      within(draftItem as HTMLElement).getByRole('button', { name: /delete/i }),
+      within(draftItem as HTMLElement).getByRole('button', { name: /borrar/i }),
     ).toBeInTheDocument();
     expect(
-      within(activeItem as HTMLElement).queryByRole('button', { name: /delete/i }),
+      within(activeItem as HTMLElement).queryByRole('button', { name: /borrar/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -81,9 +81,9 @@ describe('SessionListPage', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByText('Draft Session')).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: /delete/i }));
+    await user.click(screen.getByRole('button', { name: /borrar/i }));
 
-    await waitFor(() => expect(screen.getByText(/no sessions yet/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/todavía no hay conteos/i)).toBeInTheDocument());
   });
 
   it('shows an error banner when delete fails and keeps the session listed', async () => {
@@ -103,7 +103,7 @@ describe('SessionListPage', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByText('Draft Session')).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: /delete/i }));
+    await user.click(screen.getByRole('button', { name: /borrar/i }));
 
     await waitFor(() =>
       expect(screen.getByText(/only draft sessions can be deleted/i)).toBeInTheDocument(),

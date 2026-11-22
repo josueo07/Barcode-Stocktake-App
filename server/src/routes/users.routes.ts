@@ -74,7 +74,10 @@ export function createUsersRouter(db: AppDatabase): Router {
 
       const me = currentUser(req);
       if (me.id === id && (body.active === false || (body.role && body.role !== 'supervisor'))) {
-        throw new AppError('You cannot deactivate or demote your own account', 400);
+        throw new AppError(
+          'No puedes desactivar ni quitarte el rol de supervisor a ti mismo.',
+          400,
+        );
       }
 
       const row = db

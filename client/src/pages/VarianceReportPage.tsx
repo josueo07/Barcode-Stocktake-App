@@ -17,7 +17,7 @@ export function VarianceReportPage() {
       setReport(await getVarianceReport(session.id));
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load variance report');
+      setError(err instanceof Error ? err.message : 'No se pudo cargar el reporte');
     }
   }, [session.id]);
 
@@ -38,14 +38,14 @@ export function VarianceReportPage() {
   return (
     <div className="variance-report-page">
       <div className="variance-report-actions">
-        <h2>Variance report</h2>
+        <h2>Reporte de diferencias</h2>
         <button
           type="button"
           onClick={() =>
             downloadVarianceReportCsv(session.id).catch((err: Error) => setError(err.message))
           }
         >
-          Export CSV
+          Descargar CSV
         </button>
       </div>
 

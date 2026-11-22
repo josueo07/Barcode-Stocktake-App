@@ -13,9 +13,9 @@ export function SyncStatusBanner({
     >
       <span className="sync-status-dot" aria-hidden="true" />
       <span>
-        {isOnline ? 'Online' : 'Offline — scans are queued on this device'}
-        {pendingCount > 0 && ` · ${pendingCount} scan${pendingCount === 1 ? '' : 's'} pending sync`}
-        {isSyncing && ' · syncing…'}
+        {isOnline ? 'En línea' : 'Sin conexión: los escaneos se guardan en este teléfono'}
+        {pendingCount > 0 && ` · ${pendingCount} sin enviar`}
+        {isSyncing && ' · enviando…'}
       </span>
       {isOnline && pendingCount > 0 && !isSyncing && (
         <button type="button" className="link-button" onClick={() => flushNow()}>
@@ -24,7 +24,7 @@ export function SyncStatusBanner({
       )}
       {lastError && (
         <span className="sync-status-error" role="alert">
-          Sync error: {lastError}
+          Error al enviar: {lastError}
         </span>
       )}
     </div>

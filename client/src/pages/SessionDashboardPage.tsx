@@ -17,8 +17,8 @@ const NEXT_STATUS: Partial<Record<SessionStatus, SessionStatus>> = {
 };
 
 const NEXT_STATUS_LABEL: Partial<Record<SessionStatus, string>> = {
-  draft: 'Start session',
-  active: 'Complete session',
+  draft: 'Iniciar conteo',
+  active: 'Cerrar conteo',
 };
 
 export function SessionDashboardPage() {
@@ -32,7 +32,7 @@ export function SessionDashboardPage() {
       setCounts(await getCounts(session.id));
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load counts');
+      setError(err instanceof Error ? err.message : 'No se pudieron cargar los conteos');
     }
   }, [session.id]);
 
@@ -58,7 +58,7 @@ export function SessionDashboardPage() {
       await deleteExpectedQuantity(session.id, productId);
       await refreshCounts();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove expected quantity');
+      setError(err instanceof Error ? err.message : 'No se pudo quitar el esperado');
     }
   };
 
@@ -77,7 +77,7 @@ export function SessionDashboardPage() {
       await updateSession(session.id, { status: nextStatus });
       await refreshSession();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update session status');
+      setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado');
     } finally {
       setIsChangingStatus(false);
     }
@@ -90,17 +90,17 @@ export function SessionDashboardPage() {
       <section className="dashboard-actions">
         {nextStatus && (
           <button type="button" onClick={handleAdvanceStatus} disabled={isChangingStatus}>
-            {isChangingStatus ? 'Updating…' : NEXT_STATUS_LABEL[session.status]}
+            {isChangingStatus ? 'Actualizando…' : NEXT_STATUS_LABEL[session.status]}
           </button>
         )}
         {session.status === 'completed' && (
-          <p>This session is complete. View the variance report.</p>
+          <p>Este conteo está cerrado. Mira el reporte de diferencias.</p>
         )}
       </section>
 
       {isSupervisor && session.status !== 'completed' && (
         <section className="dashboard-import">
-          <h2>Expected quantities</h2>
+          <h2>Cantidades esperadas</h2>
           <CsvUploadForm sessionId={session.id} onImported={refreshCounts} />
           <ManualEntryForm sessionId={session.id} onAdded={refreshCounts} />
         </section>
@@ -111,7 +111,7 @@ export function SessionDashboardPage() {
       )}
 
       <section className="dashboard-counts">
-        <h2>Live counts</h2>
+        <h2>Conteo en vivo</h2>
         <LiveCountTable
           counts={counts}
           onRemoveExpected={

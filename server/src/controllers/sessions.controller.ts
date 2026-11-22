@@ -17,17 +17,14 @@ const ALLOWED_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
 
 function assertNotCompleted(session: { id: number; status: SessionStatus }) {
   if (session.status === 'completed') {
-    throw new AppError(
-      `Session ${session.id} is closed; its expected quantities can no longer change.`,
-      409,
-    );
+    throw new AppError('Este conteo está cerrado; ya no se pueden cambiar los esperados.', 409);
   }
 }
 
 function getSessionOrThrow(db: AppDatabase, id: number) {
   const session = db.select().from(stocktakeSessions).where(eq(stocktakeSessions.id, id)).get();
   if (!session) {
-    throw new AppError(`Session ${id} not found`, 404);
+    throw new AppError(`Conteo ${id} no encontrado (not found)`, 404);
   }
   return session;
 }
@@ -78,7 +75,7 @@ export function updateSession(db: AppDatabase, io?: SocketIOServer): RequestHand
       if (status !== undefined && status !== existing.status) {
         if (!ALLOWED_TRANSITIONS[existing.status].includes(status)) {
           throw new AppError(
-            `Cannot change session ${id} from "${existing.status}" to "${status}". A count goes draft → active → completed and cannot be reopened.`,
+            'Ese cambio no está permitido: un conteo va de borrador a en curso a cerrado, y no se puede reabrir.',
             409,
           );
         }
@@ -131,7 +128,7 @@ export function deleteSession(db: AppDatabase): RequestHandler {
       if (existing.status !== 'draft') {
         next(
           new AppError(
-            `Cannot delete session ${id}: only sessions in "draft" status can be deleted (this one is "${existing.status}"). Stocktake history is preserved once a session starts.`,
+            'Solo se pueden borrar conteos en borrador. Un conteo iniciado se conserva como historial.',
             409,
           ),
         );
@@ -153,7 +150,7 @@ export function importSessionCsv(db: AppDatabase, io?: SocketIOServer): RequestH
       assertNotCompleted(getSessionOrThrow(db, id));
 
       if (!req.file) {
-        next(new AppError('CSV file is required (multipart field "file")', 400));
+        next(new AppError('Falta el archivo CSV.', 400));
         return;
       }
 
@@ -215,7 +212,7 @@ export function addManualExpectedQuantity(db: AppDatabase, io?: SocketIOServer):
         if (!name || !sku) {
           next(
             new AppError(
-              `No product found for barcode "${barcode}"; provide "name" and "sku" to create one`,
+              `El código "${barcode}" no existe; escribe nombre y SKU para crearlo.`,
               400,
             ),
           );

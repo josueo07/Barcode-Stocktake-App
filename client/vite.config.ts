@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/icon.svg'],
       manifest: {
-        name: 'Barcode Stocktake',
-        short_name: 'Stocktake',
-        description: 'Scan barcodes, track live counts, and generate stocktake variance reports.',
+        name: 'Inventario J&R',
+        short_name: 'Inventario',
+        description: 'Conteo de inventario con escáner de códigos de barras.',
         theme_color: '#1d4ed8',
         background_color: '#ffffff',
         display: 'standalone',

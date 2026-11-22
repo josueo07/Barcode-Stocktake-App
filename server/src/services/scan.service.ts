@@ -32,10 +32,10 @@ function scanDisposition(db: AppDatabase, sessionId: number): { late: boolean } 
     .from(stocktakeSessions)
     .where(eq(stocktakeSessions.id, sessionId))
     .get();
-  if (!session) throw new AppError(`Session ${sessionId} not found`, 404);
+  if (!session) throw new AppError(`Conteo ${sessionId} no encontrado (not found)`, 404);
   const status: SessionStatus = session.status;
   if (status === 'draft') {
-    throw new AppError('This count has not started yet. Ask a supervisor to start it.', 409);
+    throw new AppError('Este conteo no ha empezado. Pide a un supervisor que lo inicie.', 409);
   }
   return { late: status === 'completed' };
 }
