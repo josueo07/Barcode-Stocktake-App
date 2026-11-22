@@ -19,7 +19,7 @@ import {
 
 const scanSubmissionSchema = z.object({
   clientScanId: z.string().uuid(),
-  barcode: z.string().min(1),
+  barcode: z.string().trim().min(1).max(64),
   quantity: z.number().int().positive().max(100000).optional(),
   scannedAt: z.string(),
   deviceLabel: z.string().max(64).optional(),

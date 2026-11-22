@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { MAX_BATCH_SCAN_SIZE } from '@barcode-stocktake/shared';
 import { submitScanBatch } from '../api/scans';
+import { ApiError } from '../api/httpClient';
 import { loadAuth } from '../auth/authStore';
 import { countPendingScans, getPendingScans, markScanStatus } from '../db/offlineQueue';
 import { useOnlineStatus } from './useOnlineStatus';
@@ -69,6 +70,16 @@ export function useOfflineSync(sessionId: number | null): OfflineSyncState {
         }),
       );
     } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        // The count no longer exists (a supervisor deleted it): stop retrying these scans.
+        await Promise.all(
+          pending.map((scan) =>
+            scan.id === undefined
+              ? undefined
+              : markScanStatus(scan.id, 'failed', 'Este conteo ya no existe.'),
+          ),
+        );
+      }
       setLastError(err instanceof Error ? err.message : 'No se pudo enviar');
     } finally {
       setIsSyncing(false);

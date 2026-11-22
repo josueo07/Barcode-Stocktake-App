@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-_Última actualización: 2026-11-22 (solo códigos de barras, sin QR)_
+_Última actualización: 2026-11-22 (revisión de errores)_
 
 ## Objetivo
 
@@ -61,6 +61,25 @@ el código pendiente sin guardarlo.
 
 En Conteos, el supervisor puede borrar borradores, conteos en curso y cerrados.
 La confirmación muestra el nombre y avisa que se eliminarán sus datos y reporte.
+
+## Revisión del 22 de noviembre
+
+Arreglado:
+- Anular un escaneo solo afecta al conteo de la dirección usada (antes se podía
+  borrar un escaneo de un conteo cerrado a través de otro conteo abierto).
+- El código escaneado se recorta y se limita a 64 caracteres; uno vacío se rechaza.
+- El total «Último confirmado» suma todas las formas del código del mismo
+  producto (con o sin cero al inicio).
+- Si un conteo se borra con escaneos pendientes en un teléfono, esos escaneos
+  quedan como «Error» en vez de reintentarse para siempre.
+- Conteo en vivo: el nombre del producto va primero; mensajes en español.
+
+Pendiente de decidir:
+- `react-router-dom` 6 tiene dos avisos moderados (redirección con `\` en
+  enlaces y SSR). La app no usa SSR ni enlaces con datos del usuario; pasar a la
+  versión 7 es un cambio mayor.
+- Borrar un conteo en curso o cerrado no se puede deshacer; solo queda el
+  respaldo diario del servidor.
 
 ## Falta (en orden)
 
