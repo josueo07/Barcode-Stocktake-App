@@ -2,6 +2,10 @@
 
 Cada entrada: fecha, decisión y por qué. La más nueva arriba.
 
+- **2026-11-22 — Confirmar el borrado de un borrador.** Se reserva un espacio
+  para «Borrar» en la fila y la confirmación muestra el nombre del conteo.
+  Así se evita que el botón se superponga con la etiqueta de estado o que
+  un toque accidental elimine un borrador.
 - **2026-11-22 — Un solo supervisor, varios contadores.** Josue lo pidió. El servidor no
   deja crear ni activar un segundo supervisor. Cada persona tiene su perfil y puede cambiar
   su propio PIN; al cambiarlo se cierran sus otras sesiones.
