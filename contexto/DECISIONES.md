@@ -2,6 +2,8 @@
 
 Cada entrada: fecha, decisión y por qué. La más nueva arriba.
 
+- **2026-11-22 — Solo códigos de barras, sin QR.** Josue lo pidió. El escáner lee
+  EAN, UPC y Code 128; se quitó la lectura de QR (jsQR) que se había añadido.
 - **2026-11-22 — Borrado confirmado en cualquier estado.** Josue autorizó
   permitir que el supervisor borre borradores, conteos en curso y cerrados.
   Se confirma con el nombre del conteo y se eliminan sus datos asociados.

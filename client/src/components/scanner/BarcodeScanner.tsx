@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Quagga, { type QuaggaJSCodeReader } from '@ericblade/quagga2';
-import { readQrFromVideo } from './qrCode';
 import { ScanDebouncer } from './scanDebounce';
 
 export interface BarcodeScannerProps {
@@ -11,9 +10,6 @@ export interface BarcodeScannerProps {
   active: boolean;
   restartCount?: number;
 }
-
-/** How often (ms) a camera frame is checked for a QR code. Quagga only reads 1D barcodes. */
-const QR_SCAN_INTERVAL_MS = 250;
 
 const READERS: QuaggaJSCodeReader[] = [
   'ean_reader',
@@ -62,7 +58,6 @@ export function BarcodeScanner({
 
     let cancelled = false;
     let opened = false;
-    let qrTimer: ReturnType<typeof setInterval> | undefined;
 
     const openCamera = () => {
       if (cancelled) return;
@@ -89,16 +84,6 @@ export function BarcodeScanner({
           }
           setError(null);
           Quagga.start();
-          const canvas = document.createElement('canvas');
-          qrTimer = setInterval(() => {
-            const video = viewport.querySelector('video');
-            if (!video) return;
-            try {
-              acceptCode(readQrFromVideo(video, canvas));
-            } catch {
-              // A frame that can't be read is skipped; the next one is tried.
-            }
-          }, QR_SCAN_INTERVAL_MS);
         },
       );
 
@@ -110,7 +95,6 @@ export function BarcodeScanner({
 
     return () => {
       cancelled = true;
-      if (qrTimer) clearInterval(qrTimer);
       if (!opened) return;
       Quagga.offDetected(handleDetected);
       cameraStoppedRef.current = Promise.resolve(Quagga.stop()).catch(() => undefined);
