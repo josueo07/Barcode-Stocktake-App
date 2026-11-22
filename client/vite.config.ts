@@ -17,11 +17,16 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
-        icons: [{ src: 'icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }],
+        icons: [
+          { src: 'icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
+        ],
       },
       workbox: {
         // App-shell only: scan data is owned by IndexedDB (Dexie), not the service worker cache.
         globPatterns: ['**/*.{js,css,html,svg}'],
+        // Deep links (e.g. /sessions/3/scan) open from cache in airplane mode; API calls never do.
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/socket\.io\//],
       },
     }),
   ],

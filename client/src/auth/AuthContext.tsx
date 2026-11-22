@@ -9,13 +9,16 @@ import {
 } from 'react';
 import type { AuthUser, LoginResponse } from '@barcode-stocktake/shared';
 import { httpClient } from '../api/httpClient';
+import { countAllPendingScans } from '../db/offlineQueue';
+import { requestPersistentStorage } from '../lib/device';
 import { AUTH_EXPIRED_EVENT, clearAuth, loadAuth, saveAuth } from './authStore';
 
 export interface AuthContextValue {
   user: AuthUser | null;
   isSupervisor: boolean;
   login: (username: string, pin: string) => Promise<void>;
-  logout: () => Promise<void>;
+  /** Resolves false if the person chose to stay signed in because of unsent scans. */
+  logout: () => Promise<boolean>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -39,9 +42,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await httpClient.post<LoginResponse>('/api/auth/login', { username, pin });
     saveAuth(result);
     setUser(result.user);
+    void requestPersistentStorage();
   }, []);
 
   const logout = useCallback(async () => {
+    const pending = await countAllPendingScans(loadAuth()?.user.id).catch(() => 0);
+    if (
+      pending > 0 &&
+      !window.confirm(
+        `Tienes ${pending} escaneo(s) sin enviar. Se quedan guardados en este teléfono y se enviarán cuando vuelvas a entrar con tu usuario. ¿Salir de todos modos?`,
+      )
+    ) {
+      return false;
+    }
     try {
       await httpClient.post('/api/auth/logout');
     } catch {
@@ -49,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     clearAuth();
     setUser(null);
+    return true;
   }, []);
 
   const value = useMemo(

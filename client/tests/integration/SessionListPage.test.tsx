@@ -29,7 +29,7 @@ const supervisorAuth: AuthContextValue = {
   user: { id: 1, username: 'sup', displayName: 'Sup', role: 'supervisor' },
   isSupervisor: true,
   login: async () => {},
-  logout: async () => {},
+  logout: async () => true,
 };
 
 function renderPage() {
