@@ -3,6 +3,7 @@
 Este archivo se llena solo (GitHub Actions) cada vez que algo entra a `master`. No lo edites a mano.
 
 <!-- nuevos-cambios -->
+- 2026-11-22 — Escáner: UPC de 12 dígitos como está impreso (PR #12)
 - 2026-11-22 — Revisión: arreglos de errores encontrados (PR #11)
 - 2026-11-22 — Escáner: solo códigos de barras (quitar QR) (PR #10)
 - 2026-11-22 — Trabajo de Codex (importar, cámara, borrar) + lectura de QR (PR #9)
