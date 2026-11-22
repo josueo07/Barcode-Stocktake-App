@@ -44,7 +44,8 @@ la operación, la recuperación y las pruebas pendientes en [PILOTO-CONTABO.md](
 
 1. **Prueba con dos iPhones**. Cámara, modo avión, reapertura de la app, sincronización,
    cierre y reportes. Usar datos ficticios.
-2. **Unir PR #3 y #4** a `master` y resolver los ajustes detectados en el piloto.
+2. **Actualizar el piloto en Contabo** a `master` (PR #3, #4 y #5 ya unidos el 2026-11-22;
+   trae la migración `0004_expected_cost`). Luego resolver los ajustes detectados en el piloto.
 3. **Preparar producción**. Revisar dependencias, definir acceso del equipo y configurar
    un destino externo para los respaldos.
 
