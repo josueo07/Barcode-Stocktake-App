@@ -6,6 +6,9 @@ export interface ScanEvent {
   clientScanId: string;
   deviceLabel: string | null;
   quantity: number;
+  /** Received after the session closed; excluded from counts until a supervisor accepts it. */
+  late: boolean;
+  userId: number | null;
   scannedAt: string;
   syncedAt: string;
   createdAt: string;
@@ -24,7 +27,11 @@ export interface BatchScanRequest {
   scans: ScanSubmission[];
 }
 
-export type BatchScanItemStatus = 'accepted' | 'duplicate' | 'error';
+/**
+ * accepted/duplicate: counted. late: stored on the server but held for supervisor review because
+ * the session had already closed. error: rejected (the client keeps it as failed).
+ */
+export type BatchScanItemStatus = 'accepted' | 'duplicate' | 'late' | 'error';
 
 export interface BatchScanItemResult {
   clientScanId: string;

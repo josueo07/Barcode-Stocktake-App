@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
-import { createTestApp } from '../testApp';
+import { activateSession, createTestApp } from '../testApp';
 
 describe('Stocktake API', () => {
   let ctx: ReturnType<typeof createTestApp>;
@@ -114,6 +114,7 @@ describe('Stocktake API', () => {
       .set(ctx.auth)
       .send({ name: 'Scan Test' });
     const sessionId = sessionRes.body.session.id;
+    activateSession(ctx.db, sessionId);
 
     const scan = {
       clientScanId: uuidv4(),
@@ -140,6 +141,7 @@ describe('Stocktake API', () => {
       .set(ctx.auth)
       .send({ name: 'Dedupe Test' });
     const sessionId = sessionRes.body.session.id;
+    activateSession(ctx.db, sessionId);
 
     const scan = {
       clientScanId: uuidv4(),
@@ -166,6 +168,7 @@ describe('Stocktake API', () => {
       .set(ctx.auth)
       .send({ name: 'Batch Test' });
     const sessionId = sessionRes.body.session.id;
+    activateSession(ctx.db, sessionId);
 
     const firstScanId = uuidv4();
     const scan = {
@@ -196,6 +199,7 @@ describe('Stocktake API', () => {
       .set(ctx.auth)
       .send({ name: 'Void Test' });
     const sessionId = sessionRes.body.session.id;
+    activateSession(ctx.db, sessionId);
 
     const scan = {
       clientScanId: uuidv4(),
@@ -227,6 +231,7 @@ describe('Stocktake API', () => {
       .set(ctx.auth)
       .send({ name: 'Variance Test' });
     const sessionId = sessionRes.body.session.id;
+    activateSession(ctx.db, sessionId);
 
     const csv = 'sku,barcode,name,expected_qty\nSKU1,1111111111111,Widget,10\n';
     await request(ctx.app)
@@ -280,6 +285,7 @@ describe('Stocktake API', () => {
       .set(ctx.auth)
       .send({ name: 'Completion Test' });
     const sessionId = sessionRes.body.session.id;
+    activateSession(ctx.db, sessionId);
 
     const res = await request(ctx.app)
       .patch(`/api/sessions/${sessionId}`)
@@ -376,6 +382,7 @@ describe('Stocktake API', () => {
         .set(ctx.auth)
         .send({ name: 'Referenced Scan Test' });
       const sessionId = sessionRes.body.session.id;
+      activateSession(ctx.db, sessionId);
 
       const productRes = await request(ctx.app)
         .post('/api/products')
@@ -497,6 +504,7 @@ describe('Stocktake API', () => {
         .set(ctx.auth)
         .send({ name: 'Scan List Test' });
       const sessionId = sessionRes.body.session.id;
+      activateSession(ctx.db, sessionId);
 
       const first = {
         clientScanId: uuidv4(),

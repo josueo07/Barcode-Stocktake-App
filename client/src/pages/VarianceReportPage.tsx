@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { VarianceReport } from '@barcode-stocktake/shared';
 import { SOCKET_EVENTS } from '@barcode-stocktake/shared';
-import { getVarianceReport, varianceReportExportUrl } from '../api/scans';
+import { downloadVarianceReportCsv, getVarianceReport } from '../api/scans';
 import { ErrorBanner } from '../components/common/ErrorBanner';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { VarianceReportTable } from '../components/report/VarianceReportTable';
@@ -39,9 +39,14 @@ export function VarianceReportPage() {
     <div className="variance-report-page">
       <div className="variance-report-actions">
         <h2>Variance report</h2>
-        <a href={varianceReportExportUrl(session.id)} download>
+        <button
+          type="button"
+          onClick={() =>
+            downloadVarianceReportCsv(session.id).catch((err: Error) => setError(err.message))
+          }
+        >
           Export CSV
-        </a>
+        </button>
       </div>
 
       {error && <ErrorBanner message={error} />}

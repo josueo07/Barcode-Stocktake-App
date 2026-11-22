@@ -13,7 +13,7 @@ describe('buildVarianceReport', () => {
 
   beforeEach(() => {
     ({ db } = createTestDatabase());
-    const session = db.insert(stocktakeSessions).values({ name: 'Test Session' }).returning().get();
+    const session = db.insert(stocktakeSessions).values({ name: 'Test Session', status: 'active' }).returning().get();
     sessionId = session.id;
   });
 
