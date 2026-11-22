@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Quagga, { type QuaggaJSCodeReader } from '@ericblade/quagga2';
+import { readQrFromVideo } from './qrCode';
 import { ScanDebouncer } from './scanDebounce';
 
 export interface BarcodeScannerProps {
@@ -9,6 +10,9 @@ export interface BarcodeScannerProps {
   deviceId?: string;
   active: boolean;
 }
+
+/** How often (ms) a camera frame is checked for a QR code. Quagga only reads 1D barcodes. */
+const QR_SCAN_INTERVAL_MS = 250;
 
 const READERS: QuaggaJSCodeReader[] = [
   'ean_reader',
@@ -27,14 +31,18 @@ export function BarcodeScanner({ onDecode, deviceId, active }: BarcodeScannerPro
   const debouncerRef = useRef(new ScanDebouncer());
   const [error, setError] = useState<string | null>(null);
 
-  const handleDetected = useCallback(
-    (result: QuaggaDetectionResult) => {
-      const code = result.codeResult.code;
+  const acceptCode = useCallback(
+    (code: string | null) => {
       if (code && debouncerRef.current.shouldAccept(code)) {
         onDecode(code);
       }
     },
     [onDecode],
+  );
+
+  const handleDetected = useCallback(
+    (result: QuaggaDetectionResult) => acceptCode(result.codeResult.code),
+    [acceptCode],
   );
 
   useEffect(() => {
@@ -45,6 +53,8 @@ export function BarcodeScanner({ onDecode, deviceId, active }: BarcodeScannerPro
       : { facingMode: 'environment' };
 
     let cancelled = false;
+    let qrTimer: ReturnType<typeof setInterval> | undefined;
+    const viewport = viewportRef.current;
 
     Quagga.init(
       {
@@ -68,6 +78,16 @@ export function BarcodeScanner({ onDecode, deviceId, active }: BarcodeScannerPro
         }
         setError(null);
         Quagga.start();
+        const canvas = document.createElement('canvas');
+        qrTimer = setInterval(() => {
+          const video = viewport.querySelector('video');
+          if (!video) return;
+          try {
+            acceptCode(readQrFromVideo(video, canvas));
+          } catch {
+            // A frame that can't be read is skipped; the next one is tried.
+          }
+        }, QR_SCAN_INTERVAL_MS);
       },
     );
 
@@ -75,10 +95,11 @@ export function BarcodeScanner({ onDecode, deviceId, active }: BarcodeScannerPro
 
     return () => {
       cancelled = true;
+      if (qrTimer) clearInterval(qrTimer);
       Quagga.offDetected(handleDetected);
       Quagga.stop();
     };
-  }, [active, deviceId, handleDetected]);
+  }, [active, deviceId, handleDetected, acceptCode]);
 
   return (
     <div className="barcode-scanner">
