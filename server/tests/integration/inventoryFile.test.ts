@@ -115,15 +115,12 @@ describe("Pharmacy's inventory file → count → discrepancy report", () => {
       await request(ctx.app).post('/api/sessions').set(ctx.auth).send({ name: 'Sin archivo' })
     ).body.session.id;
     await request(ctx.app).patch(`/api/sessions/${other}`).set(ctx.auth).send({ status: 'active' });
-    await request(ctx.app)
-      .post(`/api/sessions/${other}/scans`)
-      .set(ctx.counter.header)
-      .send({
-        clientScanId: uuidv4(),
-        scannedAt: new Date().toISOString(),
-        barcode: '111',
-        quantity: 5,
-      });
+    await request(ctx.app).post(`/api/sessions/${other}/scans`).set(ctx.counter.header).send({
+      clientScanId: uuidv4(),
+      scannedAt: new Date().toISOString(),
+      barcode: '111',
+      quantity: 5,
+    });
     const report = (
       await request(ctx.app).get(`/api/sessions/${other}/variance-report`).set(ctx.auth)
     ).body.report;
@@ -144,5 +141,37 @@ describe("Pharmacy's inventory file → count → discrepancy report", () => {
       .set(ctx.auth)
       .attach('file', Buffer.from('Producto,Cantidad\nAlgo,1\n'), 'malo.csv');
     expect(res.body.summary.errors[0].message).toMatch(/UPC/);
+  });
+
+  it('creates a product on the spot when a counter scans something not in the file', async () => {
+    await request(ctx.app).patch(`/api/sessions/${id}`).set(ctx.auth).send({ status: 'active' });
+    // First a scan with no name (e.g. offline), then one where the counter typed the name.
+    await scan('7501234567890', 1);
+    const lookup = await request(ctx.app)
+      .get('/api/products/7501234567890')
+      .set(ctx.counter.header);
+    expect(lookup.status).toBe(404);
+    expect(
+      (await scan('7501234567890', 2, { newProductName: 'Vitamina C 500mg', unitCostCents: 425 }))
+        .status,
+    ).toBe(201);
+    // A later name for the same code doesn't rename it.
+    await scan('7501234567890', 1, { newProductName: 'Otro nombre' });
+
+    const found = await request(ctx.app).get('/api/products/7501234567890').set(ctx.counter.header);
+    expect(found.body.product).toMatchObject({ name: 'Vitamina C 500mg', sku: '7501234567890' });
+
+    const report = (await request(ctx.app).get(`/api/sessions/${id}/variance-report`).set(ctx.auth))
+      .body.report;
+    expect(report.rows).toEqual([
+      expect.objectContaining({
+        barcode: '7501234567890',
+        name: 'Vitamina C 500mg',
+        expectedQty: 0,
+        countedQty: 4,
+        variance: 4,
+        countedValueCents: 850,
+      }),
+    ]);
   });
 });

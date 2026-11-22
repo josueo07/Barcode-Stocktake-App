@@ -5,7 +5,12 @@ import { SOCKET_EVENTS } from '@barcode-stocktake/shared';
 import { BarcodeScanner } from '../components/scanner/BarcodeScanner';
 import { CameraDeviceSelect } from '../components/scanner/CameraDeviceSelect';
 import { RecentScansList } from '../components/scanner/RecentScansList';
-import { ScanEntryPanel, type ScanEntryDetails } from '../components/scanner/ScanEntryPanel';
+import {
+  ScanEntryPanel,
+  type ProductLookup,
+  type ScanEntryDetails,
+} from '../components/scanner/ScanEntryPanel';
+import { getProductByBarcode } from '../api/products';
 import { SyncStatusBanner } from '../components/scanner/SyncStatusBanner';
 import { useSessionContext } from '../context/useSessionContext';
 import { useAuth } from '../auth/AuthContext';
@@ -46,6 +51,30 @@ export function ScanPage() {
   // The scan waits here until the counter confirms quantity (and optional details).
   const [pending, setPending] = useState<{ barcode: string; scannedAt: string } | null>(null);
   const [typedBarcode, setTypedBarcode] = useState('');
+  const [lookup, setLookup] = useState<{ status: ProductLookup; name: string | null }>({
+    status: 'loading',
+    name: null,
+  });
+
+  useEffect(() => {
+    if (!pending) return undefined;
+    let cancelled = false;
+    setLookup({ status: 'loading', name: null });
+    const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 4000));
+    Promise.race([getProductByBarcode(pending.barcode), timeout])
+      .then((result) => {
+        if (cancelled) return;
+        if (result === 'timeout') setLookup({ status: 'unknown', name: null });
+        else if (result) setLookup({ status: 'found', name: result.name });
+        else setLookup({ status: 'new', name: null });
+      })
+      .catch(() => {
+        if (!cancelled) setLookup({ status: 'unknown', name: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pending]);
 
   const handleDecode = useCallback((barcode: string) => {
     // Ignore further decodes while a scan is waiting for confirmation.
@@ -66,6 +95,7 @@ export function ScanPage() {
           lot: details.lot,
           expiryDate: details.expiryDate,
           unitCostCents: details.unitCostCents,
+          newProductName: details.newProductName,
         },
         user?.id,
       );
@@ -99,7 +129,10 @@ export function ScanPage() {
       <BarcodeScanner active onDecode={handleDecode} deviceId={deviceId} />
       {pending ? (
         <ScanEntryPanel
+          key={pending.scannedAt}
           barcode={pending.barcode}
+          productName={lookup.name}
+          productLookup={lookup.status}
           costEnabled={session.costEnabled}
           onSave={handleSave}
           onCancel={() => setPending(null)}

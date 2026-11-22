@@ -28,6 +28,11 @@ export interface ScanSubmission {
   lot?: string;
   expiryDate?: string;
   unitCostCents?: number;
+  /**
+   * Name typed by the counter for a product that isn't in the pharmacy's file. The server
+   * creates the product with it; ignored when the barcode is already known.
+   */
+  newProductName?: string;
 }
 
 export interface BatchScanRequest {

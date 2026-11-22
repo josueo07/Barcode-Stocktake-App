@@ -34,7 +34,37 @@ describe('ScanEntryPanel', () => {
       lot: undefined,
       expiryDate: undefined,
       unitCostCents: undefined,
+      newProductName: undefined,
     });
+  });
+
+  it('asks for a name (and optional cost) when the product is not in the file', async () => {
+    window.localStorage.clear();
+    const onSave = vi.fn();
+    render(
+      <ScanEntryPanel
+        barcode="7501234567890"
+        productLookup="new"
+        costEnabled={false}
+        onSave={onSave}
+        onCancel={() => {}}
+      />,
+    );
+    expect(screen.getByText(/no está en el archivo/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent(/nombre/i);
+
+    await userEvent.type(screen.getByLabelText('Nombre del producto'), 'Vitamina C 500mg');
+    await userEvent.type(screen.getByLabelText(/costo unitario/i), '4.25');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        quantity: 1,
+        newProductName: 'Vitamina C 500mg',
+        unitCostCents: 425,
+      }),
+    );
   });
 
   it('shows lot, expiry and cost fields when enabled', async () => {

@@ -24,11 +24,19 @@ export interface ScanEntryDetails {
   lot?: string;
   expiryDate?: string;
   unitCostCents?: number;
+  newProductName?: string;
 }
+
+/**
+ * loading: looking the code up. found: in the catalog. new: the server says it isn't, so a name
+ * is needed to create it. unknown: no connection, so the name is optional.
+ */
+export type ProductLookup = 'loading' | 'found' | 'new' | 'unknown';
 
 interface ScanEntryPanelProps {
   barcode: string;
   productName?: string | null;
+  productLookup?: ProductLookup;
   costEnabled: boolean;
   onSave: (details: ScanEntryDetails) => void;
   onCancel: () => void;
@@ -41,6 +49,7 @@ interface ScanEntryPanelProps {
 export function ScanEntryPanel({
   barcode,
   productName,
+  productLookup = 'found',
   costEnabled,
   onSave,
   onCancel,
@@ -50,6 +59,10 @@ export function ScanEntryPanel({
   const [lot, setLot] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cost, setCost] = useState('');
+  const [newName, setNewName] = useState('');
+  const isNew = productLookup === 'new';
+  const mayBeNew = isNew || productLookup === 'unknown';
+  const showCost = costEnabled || isNew;
   const [error, setError] = useState<string | null>(null);
   const quantityRef = useRef<HTMLInputElement>(null);
 
@@ -65,8 +78,12 @@ export function ScanEntryPanel({
       setError('La cantidad tiene que ser un número entero de 1 o más.');
       return;
     }
+    if (isNew && !newName.trim()) {
+      setError('Escribe el nombre del producto para crearlo.');
+      return;
+    }
     let unitCostCents: number | undefined;
-    if (costEnabled) {
+    if (showCost) {
       const parsed = parseCostToCents(cost);
       if (parsed === undefined) {
         setError('Escribe el costo como 2.50');
@@ -79,6 +96,7 @@ export function ScanEntryPanel({
       lot: trackLot && lot.trim() ? lot.trim() : undefined,
       expiryDate: trackLot && expiry ? expiry : undefined,
       unitCostCents,
+      newProductName: mayBeNew && newName.trim() ? newName.trim() : undefined,
     });
   };
 
@@ -87,7 +105,21 @@ export function ScanEntryPanel({
       <p className="scan-entry-barcode">
         <strong>{barcode}</strong>
         {productName && <span> · {productName}</span>}
+        {productLookup === 'loading' && <span className="field-hint"> · buscando…</span>}
       </p>
+      {mayBeNew && (
+        <div className="new-product-box">
+          <p className="field-hint">
+            {isNew
+              ? 'Este producto no está en el archivo. Escribe el nombre para crearlo.'
+              : 'Sin conexión: si este producto no está en el archivo, escribe el nombre (opcional).'}
+          </p>
+          <label>
+            Nombre del producto{isNew ? '' : ' (opcional)'}
+            <input value={newName} onChange={(e) => setNewName(e.target.value)} />
+          </label>
+        </div>
+      )}
       <label>
         Cantidad
         <input
@@ -98,9 +130,9 @@ export function ScanEntryPanel({
           onChange={(e) => setQuantity(e.target.value)}
         />
       </label>
-      {costEnabled && (
+      {showCost && (
         <label>
-          Costo unitario ($)
+          Costo unitario ($){costEnabled ? '' : ' (opcional)'}
           <input
             inputMode="decimal"
             placeholder="0.00"

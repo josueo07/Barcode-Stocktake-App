@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type {
   BatchScanItemResult,
   LiveCount,
@@ -71,7 +71,9 @@ export function recordScan(
   }
 
   const { late } = scanDisposition(db, sessionId);
-  const product = findProductByBarcode(db, submission.barcode);
+  const product =
+    findProductByBarcode(db, submission.barcode) ??
+    createProductFromScan(db, submission.barcode, submission.newProductName);
 
   const inserted = db
     .insert(scanEvents)
@@ -163,6 +165,26 @@ export function findProductByBarcode(db: AppDatabase, barcode: string) {
     .from(products)
     .where(sql`ltrim(${products.barcode}, '0') = ${key}`)
     .get();
+}
+
+/**
+ * A product that wasn't in the pharmacy's file, created on the spot from the name the counter
+ * typed. Its SKU is the barcode (or barcode-suffixed if that SKU is already taken).
+ */
+function createProductFromScan(db: AppDatabase, barcode: string, name?: string) {
+  const trimmed = name?.trim();
+  if (!trimmed) return undefined;
+  let sku = barcode;
+  for (let n = 2; db.select().from(products).where(eq(products.sku, sku)).get(); n += 1) {
+    sku = `${barcode}-${n}`;
+  }
+  const created = db.insert(products).values({ sku, barcode, name: trimmed }).returning().get();
+  // Earlier scans of this code (before anyone typed a name) now belong to the new product.
+  db.update(scanEvents)
+    .set({ productId: created.id })
+    .where(and(eq(scanEvents.barcode, barcode), isNull(scanEvents.productId)))
+    .run();
+  return created;
 }
 
 /** Live per-product counts for a session: expected quantity (if any) joined with counted-so-far. */

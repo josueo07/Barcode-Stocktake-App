@@ -554,3 +554,8 @@ td {
   font-weight: 600;
   margin: 0.5rem 0;
 }
+
+.new-product-box {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 0.75rem;
+}

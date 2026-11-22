@@ -29,6 +29,7 @@ const scanSubmissionSchema = z.object({
     .regex(/^\d{4}-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?$/, 'Use AAAA-MM-DD o AAAA-MM')
     .optional(),
   unitCostCents: z.number().int().nonnegative().max(100_000_000).optional(),
+  newProductName: z.string().trim().min(1).max(200).optional(),
 });
 
 const acceptLateSchema = z.object({
