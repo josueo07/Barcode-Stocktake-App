@@ -431,3 +431,131 @@ td {
     flex-wrap: wrap;
   }
 }
+
+/* --- Phone layout fixes: keep forms inside the screen (no sideways scroll) --- */
+.form-row label {
+  min-width: 0;
+}
+
+.form-row input,
+.csv-upload-form input[type='file'],
+.login-form input,
+.user-form input,
+.user-form select {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .form-row {
+    flex-direction: column;
+  }
+}
+
+/* --- Scan entry panel and report downloads --- */
+.scan-entry-panel,
+.typed-barcode-form {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.scan-entry-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.scan-entry-panel input:not([type='checkbox']),
+.typed-barcode-form input {
+  width: 100%;
+  min-width: 0;
+  font-size: 1.1rem;
+}
+
+.scan-entry-barcode {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.scan-entry-actions,
+.download-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.scan-entry-actions button {
+  flex: 1;
+}
+
+.typed-barcode-form {
+  flex-direction: row;
+}
+
+.checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.checkbox-label input {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.button-secondary {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.button-secondary:hover:not(:disabled) {
+  background: var(--color-bg);
+}
+
+.recent-scan-qty,
+.recent-scan-lot {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.variance-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.variance-report-page {
+  overflow-x: auto;
+}
+
+/* Wide report tables scroll sideways on a phone instead of squashing columns. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll table {
+  min-width: 640px;
+}
+
+.variance-summary {
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.new-product-box {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 0.75rem;
+}

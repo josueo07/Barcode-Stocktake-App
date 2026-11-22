@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { VarianceReport } from '@barcode-stocktake/shared';
 import { SOCKET_EVENTS } from '@barcode-stocktake/shared';
-import { downloadVarianceReportCsv, getVarianceReport } from '../api/scans';
+import { downloadVarianceReport, getVarianceReport } from '../api/scans';
 import { ErrorBanner } from '../components/common/ErrorBanner';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { VarianceReportTable } from '../components/report/VarianceReportTable';
@@ -17,7 +17,7 @@ export function VarianceReportPage() {
       setReport(await getVarianceReport(session.id));
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load variance report');
+      setError(err instanceof Error ? err.message : 'No se pudo cargar el reporte');
     }
   }, [session.id]);
 
@@ -38,15 +38,28 @@ export function VarianceReportPage() {
   return (
     <div className="variance-report-page">
       <div className="variance-report-actions">
-        <h2>Variance report</h2>
-        <button
-          type="button"
-          onClick={() =>
-            downloadVarianceReportCsv(session.id).catch((err: Error) => setError(err.message))
-          }
-        >
-          Export CSV
-        </button>
+        <h2>Reporte de diferencias</h2>
+        <div className="download-buttons">
+          <button
+            type="button"
+            onClick={() =>
+              downloadVarianceReport(session.id, 'xlsx').catch((err: Error) =>
+                setError(err.message),
+              )
+            }
+          >
+            Descargar Excel
+          </button>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={() =>
+              downloadVarianceReport(session.id, 'csv').catch((err: Error) => setError(err.message))
+            }
+          >
+            Descargar CSV
+          </button>
+        </div>
       </div>
 
       {error && <ErrorBanner message={error} />}

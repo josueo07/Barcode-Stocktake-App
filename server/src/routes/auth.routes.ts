@@ -18,13 +18,13 @@ export function createAuthRouter(db: AppDatabase, throttle = new LoginThrottle()
     const { username, pin } = req.body as z.infer<typeof loginSchema>;
     const key = normalizeUsername(username);
     if (throttle.isLocked(key)) {
-      next(new AppError('Too many failed attempts. Try again in a few minutes.', 429));
+      next(new AppError('Demasiados intentos fallidos. Intenta de nuevo en unos minutos.', 429));
       return;
     }
     const result = login(db, username, pin);
     if (!result) {
       throttle.recordFailure(key);
-      next(new AppError('Incorrect username or PIN', 401));
+      next(new AppError('Usuario o PIN incorrecto.', 401));
       return;
     }
     throttle.recordSuccess(key);

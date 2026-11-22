@@ -6,6 +6,7 @@ import { supervisorOnly } from '../middleware/auth';
 import { validateBody } from '../middleware/validateRequest';
 import {
   exportVarianceReport,
+  exportVarianceReportXlsx,
   acceptLate,
   getCounts,
   getLateScans,
@@ -19,9 +20,16 @@ import {
 const scanSubmissionSchema = z.object({
   clientScanId: z.string().uuid(),
   barcode: z.string().min(1),
-  quantity: z.number().int().positive().optional(),
+  quantity: z.number().int().positive().max(100000).optional(),
   scannedAt: z.string(),
-  deviceLabel: z.string().optional(),
+  deviceLabel: z.string().max(64).optional(),
+  lot: z.string().trim().min(1).max(64).optional(),
+  expiryDate: z
+    .string()
+    .regex(/^\d{4}-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?$/, 'Use AAAA-MM-DD o AAAA-MM')
+    .optional(),
+  unitCostCents: z.number().int().nonnegative().max(100_000_000).optional(),
+  newProductName: z.string().trim().min(1).max(200).optional(),
 });
 
 const acceptLateSchema = z.object({
@@ -49,6 +57,7 @@ export function createScansRouter(db: AppDatabase, io?: SocketIOServer): Router 
   );
   router.get('/:id/variance-report', supervisorOnly, getVarianceReport(db));
   router.get('/:id/variance-report/export', supervisorOnly, exportVarianceReport(db));
+  router.get('/:id/variance-report/export.xlsx', supervisorOnly, exportVarianceReportXlsx(db));
 
   return router;
 }

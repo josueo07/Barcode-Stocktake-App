@@ -1,3 +1,3 @@
-export function LoadingIndicator({ label = 'Loading…' }: { label?: string }) {
+export function LoadingIndicator({ label = 'Cargando…' }: { label?: string }) {
   return <p className="loading-indicator">{label}</p>;
 }

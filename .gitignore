@@ -35,3 +35,6 @@ Thumbs.db
 # Vite
 client/dist/
 client/.vite/
+
+# Archivos locales con accesos (PINs, etc.): nunca se suben
+*.local.txt

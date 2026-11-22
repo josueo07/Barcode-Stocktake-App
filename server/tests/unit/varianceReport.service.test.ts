@@ -13,18 +13,33 @@ describe('buildVarianceReport', () => {
 
   beforeEach(() => {
     ({ db } = createTestDatabase());
-    const session = db.insert(stocktakeSessions).values({ name: 'Test Session', status: 'active' }).returning().get();
+    const session = db
+      .insert(stocktakeSessions)
+      .values({ name: 'Test Session', status: 'active' })
+      .returning()
+      .get();
     sessionId = session.id;
   });
 
   it('returns an empty report for a session with no expected quantities or scans', () => {
     const report = buildVarianceReport(db, sessionId);
     expect(report.rows).toHaveLength(0);
-    expect(report.totals).toEqual({ expectedQty: 0, countedQty: 0, variance: 0 });
+    expect(report.totals).toEqual({
+      expectedQty: 0,
+      countedQty: 0,
+      variance: 0,
+      expectedValueCents: null,
+      countedValueCents: null,
+      valueVarianceCents: null,
+    });
   });
 
   it('reports a negative variance when counted is less than expected', () => {
-    importCsv(db, sessionId, Buffer.from('sku,barcode,name,expected_qty\nSKU1,1111111111111,Widget,10\n'));
+    importCsv(
+      db,
+      sessionId,
+      Buffer.from('sku,barcode,name,expected_qty\nSKU1,1111111111111,Widget,10\n'),
+    );
     recordScan(db, sessionId, {
       clientScanId: uuidv4(),
       barcode: '1111111111111',
@@ -43,11 +58,20 @@ describe('buildVarianceReport', () => {
     });
 
     const report = buildVarianceReport(db, sessionId);
-    expect(report.rows[0]).toMatchObject({ barcode: '9999999999999', expectedQty: 0, countedQty: 1, variance: 1 });
+    expect(report.rows[0]).toMatchObject({
+      barcode: '9999999999999',
+      expectedQty: 0,
+      countedQty: 1,
+      variance: 1,
+    });
   });
 
   it('treats an expected product with zero scans as a full shortfall', () => {
-    importCsv(db, sessionId, Buffer.from('sku,barcode,name,expected_qty\nSKU1,1111111111111,Widget,5\n'));
+    importCsv(
+      db,
+      sessionId,
+      Buffer.from('sku,barcode,name,expected_qty\nSKU1,1111111111111,Widget,5\n'),
+    );
 
     const report = buildVarianceReport(db, sessionId);
     expect(report.rows[0]).toMatchObject({ expectedQty: 5, countedQty: 0, variance: -5 });
@@ -73,6 +97,13 @@ describe('buildVarianceReport', () => {
     });
 
     const report = buildVarianceReport(db, sessionId);
-    expect(report.totals).toEqual({ expectedQty: 14, countedQty: 2, variance: -12 });
+    expect(report.totals).toEqual({
+      expectedQty: 14,
+      countedQty: 2,
+      variance: -12,
+      expectedValueCents: null,
+      countedValueCents: null,
+      valueVarianceCents: null,
+    });
   });
 });

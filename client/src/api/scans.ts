@@ -53,20 +53,27 @@ export function varianceReportExportUrl(sessionId: number): string {
  * Downloads the CSV. A plain <a href> can't send the login token, so fetch it with the
  * Authorization header and hand the browser a blob instead.
  */
-export async function downloadVarianceReportCsv(sessionId: number): Promise<void> {
+export async function downloadVarianceReport(
+  sessionId: number,
+  format: 'csv' | 'xlsx',
+): Promise<void> {
   const token = getAuthToken();
-  const res = await fetch(varianceReportExportUrl(sessionId), {
+  const url =
+    format === 'xlsx'
+      ? `${varianceReportExportUrl(sessionId)}.xlsx`
+      : varianceReportExportUrl(sessionId);
+  const res = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new Error(`No se pudo descargar el reporte (${res.status})`);
-  const url = URL.createObjectURL(await res.blob());
+  const blobUrl = URL.createObjectURL(await res.blob());
   const link = document.createElement('a');
-  link.href = url;
-  link.download = `reporte-diferencias-sesion-${sessionId}.csv`;
+  link.href = blobUrl;
+  link.download = `reporte-inventario-conteo-${sessionId}.${format}`;
   document.body.appendChild(link);
   link.click();
   link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
 }
 
 export function listLateScans(sessionId: number): Promise<ScanEvent[]> {

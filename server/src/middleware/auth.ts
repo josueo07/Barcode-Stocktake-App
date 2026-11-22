@@ -36,7 +36,7 @@ export function requireAuth(db: AppDatabase): RequestHandler {
 export function requireRole(...roles: UserRole[]): RequestHandler {
   return (req, _res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      next(new AppError('You do not have permission to do this', 403));
+      next(new AppError('No tienes permiso para hacer esto.', 403));
       return;
     }
     next();

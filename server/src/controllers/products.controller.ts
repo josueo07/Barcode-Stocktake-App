@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 import { eq, like } from 'drizzle-orm';
 import type { AppDatabase } from '../db/client';
 import { products, scanEvents, sessionExpectedQuantities } from '../db/schema';
+import { findProductByBarcode } from '../services/scan.service';
 import { AppError } from '../middleware/errorHandler';
 
 function getProductOrThrow(db: AppDatabase, id: number) {
@@ -16,7 +17,11 @@ export function listProducts(db: AppDatabase): RequestHandler {
   return (req, res) => {
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
     const rows = search
-      ? db.select().from(products).where(like(products.name, `%${search}%`)).all()
+      ? db
+          .select()
+          .from(products)
+          .where(like(products.name, `%${search}%`))
+          .all()
       : db.select().from(products).all();
     res.json({ products: rows });
   };
@@ -24,13 +29,9 @@ export function listProducts(db: AppDatabase): RequestHandler {
 
 export function getProductByBarcode(db: AppDatabase): RequestHandler {
   return (req, res, next) => {
-    const product = db
-      .select()
-      .from(products)
-      .where(eq(products.barcode, req.params.barcode))
-      .get();
+    const product = findProductByBarcode(db, String(req.params.barcode));
     if (!product) {
-      next(new AppError(`No product found for barcode "${req.params.barcode}"`, 404));
+      next(new AppError(`No hay producto con el código "${req.params.barcode}"`, 404));
       return;
     }
     res.json({ product });
@@ -89,7 +90,9 @@ export function updateProduct(db: AppDatabase): RequestHandler {
         }
       }
 
-      const updates: Partial<typeof products.$inferInsert> = { updatedAt: new Date().toISOString() };
+      const updates: Partial<typeof products.$inferInsert> = {
+        updatedAt: new Date().toISOString(),
+      };
       if (sku !== undefined) updates.sku = sku;
       if (barcode !== undefined) updates.barcode = barcode;
       if (name !== undefined) updates.name = name;
@@ -114,7 +117,11 @@ export function deleteProduct(db: AppDatabase): RequestHandler {
         .from(sessionExpectedQuantities)
         .where(eq(sessionExpectedQuantities.productId, id))
         .all().length;
-      const scanCount = db.select().from(scanEvents).where(eq(scanEvents.productId, id)).all().length;
+      const scanCount = db
+        .select()
+        .from(scanEvents)
+        .where(eq(scanEvents.productId, id))
+        .all().length;
 
       if (expectedQtyCount > 0 || scanCount > 0) {
         next(

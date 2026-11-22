@@ -27,13 +27,13 @@ describe('importCsv', () => {
     expect(summary.errors).toHaveLength(0);
   });
 
-  it('skips a row missing a required column and records why', () => {
-    const csv = 'sku,barcode,name,expected_qty\n,1111111111111,Widget,10\n';
+  it('skips a row missing the barcode and records why', () => {
+    const csv = 'sku,barcode,name,expected_qty\nSKU1,,Widget,10\n';
     const summary = importCsv(db, sessionId, Buffer.from(csv));
 
     expect(summary.rowsSkipped).toBe(1);
     expect(summary.expectedQuantitiesWritten).toBe(0);
-    expect(summary.errors[0].message).toMatch(/missing required column/i);
+    expect(summary.errors[0].message).toMatch(/falta el código/i);
   });
 
   it('skips rows with a non-integer or negative expected_qty', () => {
@@ -49,7 +49,11 @@ describe('importCsv', () => {
   });
 
   it('matches an existing product by barcode and updates it instead of duplicating', () => {
-    importCsv(db, sessionId, Buffer.from('sku,barcode,name,expected_qty\nSKU1,1111111111111,Old Name,10\n'));
+    importCsv(
+      db,
+      sessionId,
+      Buffer.from('sku,barcode,name,expected_qty\nSKU1,1111111111111,Old Name,10\n'),
+    );
     const summary = importCsv(
       db,
       sessionId,
@@ -61,7 +65,11 @@ describe('importCsv', () => {
   });
 
   it('re-importing the same barcode for a session updates the expected quantity rather than erroring', () => {
-    importCsv(db, sessionId, Buffer.from('sku,barcode,name,expected_qty\nSKU1,1111111111111,Widget,10\n'));
+    importCsv(
+      db,
+      sessionId,
+      Buffer.from('sku,barcode,name,expected_qty\nSKU1,1111111111111,Widget,10\n'),
+    );
     const summary = importCsv(
       db,
       sessionId,

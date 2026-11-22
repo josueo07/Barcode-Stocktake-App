@@ -1,100 +1,318 @@
 import { parse } from 'csv-parse/sync';
 import { eq } from 'drizzle-orm';
+import ExcelJS from 'exceljs';
 import type { CsvImportSummary } from '@barcode-stocktake/shared';
 import type { AppDatabase } from '../db/client';
 import { products, sessionExpectedQuantities } from '../db/schema';
+import { findProductByBarcode } from './scan.service';
 
-interface CsvRow {
-  sku?: string;
-  barcode?: string;
-  name?: string;
-  expected_qty?: string;
-  category?: string;
-}
+type Field = 'barcode' | 'name' | 'qty' | 'cost' | 'sku' | 'category';
 
 /**
- * Imports a CSV of expected quantities for a stocktake session. Expects a header row with
- * columns: sku, barcode, name, expected_qty, and an optional category column.
- * Upserts the product catalog by barcode and writes session-scoped expected quantities.
+ * Header names accepted for each column, compared after lowercasing and removing accents,
+ * spaces and punctuation ("Código de barras" → "codigodebarras"). Pharmacy files come from
+ * different systems, so both Spanish and English names are accepted.
  */
-export function importCsv(
-  db: AppDatabase,
-  sessionId: number,
-  fileBuffer: Buffer,
-): CsvImportSummary {
-  const summary: CsvImportSummary = {
+const HEADER_ALIASES: Record<Field, string[]> = {
+  barcode: [
+    'barcode',
+    'upc',
+    'upccode',
+    'ean',
+    'codigo',
+    'codigodebarra',
+    'codigodebarras',
+    'codigobarra',
+    'codigobarras',
+    'codbarra',
+    'codbarras',
+  ],
+  name: ['name', 'nombre', 'descripcion', 'description', 'producto', 'product', 'item', 'articulo'],
+  qty: [
+    'expectedqty',
+    'qty',
+    'quantity',
+    'cantidad',
+    'cant',
+    'existencia',
+    'existencias',
+    'inventario',
+    'onhand',
+    'stock',
+  ],
+  cost: ['cost', 'costo', 'unitcost', 'costounitario', 'costounidad', 'costoporunidad'],
+  sku: ['sku', 'itemnumber', 'itemno', 'numerodearticulo', 'codigointerno'],
+  category: ['category', 'categoria', 'departamento', 'department'],
+};
+
+const MAX_HEADER_SEARCH_ROWS = 10;
+
+export function normalizeHeader(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function mapHeader(row: string[]): Partial<Record<Field, number>> {
+  const columns: Partial<Record<Field, number>> = {};
+  row.forEach((cell, index) => {
+    const key = normalizeHeader(cell);
+    for (const field of Object.keys(HEADER_ALIASES) as Field[]) {
+      if (columns[field] === undefined && HEADER_ALIASES[field].includes(key)) {
+        columns[field] = index;
+      }
+    }
+  });
+  return columns;
+}
+
+/** "1,200" → 1200, "12.0" → 12. Returns null when the text isn't a whole non-negative number. */
+export function parseQuantity(raw: string): number | null {
+  const cleaned = raw.replace(/[,\s]/g, '');
+  if (cleaned === '' || !/^\d+(\.0+)?$/.test(cleaned)) return null;
+  return Number.parseInt(cleaned, 10);
+}
+
+/** "$1,234.50" → 123450 cents. Returns null for blanks or text that isn't an amount. */
+export function parseCostCents(raw: string): number | null | 'invalid' {
+  const cleaned = raw.replace(/[$,\s]/g, '');
+  if (cleaned === '') return null;
+  if (!/^\d+(\.\d+)?$/.test(cleaned)) return 'invalid';
+  return Math.round(Number(cleaned) * 100);
+}
+
+function emptySummary(): CsvImportSummary {
+  return {
     productsCreated: 0,
     productsUpdated: 0,
     expectedQuantitiesWritten: 0,
     rowsSkipped: 0,
     errors: [],
   };
+}
 
-  let records: CsvRow[];
+function parseCsvRows(fileBuffer: Buffer): string[][] {
+  const text = fileBuffer.toString('utf8').replace(/^\ufeff/, '');
+  const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
+  // Excel in Spanish saves "CSV" with semicolons.
+  const delimiter =
+    (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0) ? ';' : ',';
+  return parse(text, {
+    delimiter,
+    skip_empty_lines: true,
+    trim: true,
+    relax_column_count: true,
+  }) as string[][];
+}
+
+function cellText(value: ExcelJS.CellValue): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') {
+    if ('richText' in value) return value.richText.map((part) => part.text).join('');
+    if ('result' in value) return cellText(value.result as ExcelJS.CellValue);
+    if ('text' in value) return String(value.text);
+    if (value instanceof Date) return value.toISOString().slice(0, 10);
+    return '';
+  }
+  return String(value).trim();
+}
+
+async function parseXlsxRows(fileBuffer: Buffer): Promise<string[][]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(fileBuffer as unknown as ArrayBuffer);
+  const sheet = workbook.worksheets[0];
+  if (!sheet) return [];
+  const rows: string[][] = [];
+  sheet.eachRow({ includeEmpty: false }, (row) => {
+    const values: string[] = [];
+    for (let col = 1; col <= row.cellCount; col += 1) {
+      values.push(cellText(row.getCell(col).value));
+    }
+    rows.push(values);
+  });
+  return rows;
+}
+
+function isXlsx(fileBuffer: Buffer, filename?: string): boolean {
+  if (filename && /\.xlsx$/i.test(filename)) return true;
+  // .xlsx files are zip archives ("PK\x03\x04").
+  return fileBuffer.length > 4 && fileBuffer.readUInt32LE(0) === 0x04034b50;
+}
+
+/**
+ * Imports the pharmacy's inventory file (CSV or Excel) into a session: every product with its
+ * barcode (UPC), name, expected quantity and unit cost. Only the barcode and name are required;
+ * without a quantity column the products are added to the catalog with no expected quantity.
+ */
+export async function importInventoryFile(
+  db: AppDatabase,
+  sessionId: number,
+  fileBuffer: Buffer,
+  filename?: string,
+): Promise<CsvImportSummary> {
+  if (isXlsx(fileBuffer, filename)) {
+    let rows: string[][];
+    try {
+      rows = await parseXlsxRows(fileBuffer);
+    } catch (err) {
+      const summary = emptySummary();
+      summary.errors.push({
+        row: 0,
+        message: `No se pudo leer el Excel: ${(err as Error).message}`,
+      });
+      return summary;
+    }
+    return importRows(db, sessionId, rows);
+  }
+  return importCsv(db, sessionId, fileBuffer);
+}
+
+/** CSV-only entry point (also used by the demo seed). */
+export function importCsv(
+  db: AppDatabase,
+  sessionId: number,
+  fileBuffer: Buffer,
+): CsvImportSummary {
+  let rows: string[][];
   try {
-    records = parse(fileBuffer, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-    }) as CsvRow[];
+    rows = parseCsvRows(fileBuffer);
   } catch (err) {
-    summary.errors.push({ row: 0, message: `Failed to parse CSV: ${(err as Error).message}` });
+    const summary = emptySummary();
+    summary.errors.push({ row: 0, message: `No se pudo leer el CSV: ${(err as Error).message}` });
     return summary;
   }
+  return importRows(db, sessionId, rows);
+}
 
-  records.forEach((row, index) => {
-    const rowNumber = index + 2; // +1 for header row, +1 for 1-based indexing
-    const sku = row.sku?.trim();
-    const barcode = row.barcode?.trim();
-    const name = row.name?.trim();
-    const expectedQtyRaw = row.expected_qty?.trim();
-    const category = row.category?.trim() || null;
+function uniqueSku(db: AppDatabase, wanted: string, barcode: string, productId?: number): string {
+  for (const candidate of [wanted, barcode, `${wanted}-${barcode}`]) {
+    const owner = db.select().from(products).where(eq(products.sku, candidate)).get();
+    if (!owner || owner.id === productId) return candidate;
+  }
+  return `${barcode}-${Date.now()}`;
+}
 
-    if (!sku || !barcode || !name || !expectedQtyRaw) {
-      summary.rowsSkipped += 1;
-      summary.errors.push({
-        row: rowNumber,
-        message: 'Missing required column (sku, barcode, name, expected_qty)',
-      });
-      return;
-    }
+function importRows(db: AppDatabase, sessionId: number, rows: string[][]): CsvImportSummary {
+  const summary = emptySummary();
 
-    const expectedQty = Number(expectedQtyRaw);
-    if (!Number.isInteger(expectedQty) || expectedQty < 0) {
-      summary.rowsSkipped += 1;
-      summary.errors.push({
-        row: rowNumber,
-        message: `Invalid expected_qty "${expectedQtyRaw}" (must be a non-negative integer)`,
-      });
-      return;
-    }
+  const headerIndex = rows
+    .slice(0, MAX_HEADER_SEARCH_ROWS)
+    .findIndex((row) => mapHeader(row).barcode !== undefined);
+  if (headerIndex === -1) {
+    summary.errors.push({
+      row: 1,
+      message:
+        'No encontré la columna del código. El archivo debe tener una columna "UPC" o "Código" y otra "Nombre".',
+    });
+    return summary;
+  }
+  const columns = mapHeader(rows[headerIndex] ?? []);
+  if (columns.name === undefined) {
+    summary.errors.push({
+      row: headerIndex + 1,
+      message: 'Falta la columna "Nombre" o "Descripción".',
+    });
+    return summary;
+  }
+  const hasQty = columns.qty !== undefined;
+  const get = (row: string[], field: Field) => {
+    const index = columns[field];
+    return index === undefined ? '' : (row[index] ?? '').trim();
+  };
 
-    const existingProduct = db.select().from(products).where(eq(products.barcode, barcode)).get();
+  // Totals per product for this file, so a UPC listed twice (e.g. two lots) adds up.
+  const expected = new Map<number, { qty: number; unitCostCents: number | null }>();
+  const touched = new Set<number>();
 
-    let productId: number;
-    if (existingProduct) {
-      db.update(products)
-        .set({ sku, name, category, updatedAt: new Date().toISOString() })
-        .where(eq(products.id, existingProduct.id))
+  return db.transaction(() => {
+    rows.slice(headerIndex + 1).forEach((row, offset) => {
+      const rowNumber = headerIndex + offset + 2; // 1-based, after the header row
+      const barcode = get(row, 'barcode');
+      const name = get(row, 'name');
+      if (row.every((cell) => cell.trim() === '')) return;
+
+      const skip = (message: string) => {
+        summary.rowsSkipped += 1;
+        summary.errors.push({ row: rowNumber, message });
+      };
+
+      if (!barcode || !name) {
+        skip('Falta el código o el nombre.');
+        return;
+      }
+
+      let qty: number | null = null;
+      if (hasQty) {
+        const rawQty = get(row, 'qty');
+        qty = rawQty === '' ? 0 : parseQuantity(rawQty);
+        if (qty === null) {
+          skip(`Cantidad no válida "${rawQty}" (debe ser un número entero, 0 o más).`);
+          return;
+        }
+      }
+
+      const cost = parseCostCents(get(row, 'cost'));
+      if (cost === 'invalid') {
+        skip(`Costo no válido "${get(row, 'cost')}".`);
+        return;
+      }
+
+      const sku = get(row, 'sku');
+      const category = get(row, 'category') || null;
+      const now = new Date().toISOString();
+      const existing = findProductByBarcode(db, barcode);
+
+      let productId: number;
+      if (existing) {
+        db.update(products)
+          .set({
+            name,
+            ...(category ? { category } : {}),
+            ...(sku ? { sku: uniqueSku(db, sku, existing.barcode, existing.id) } : {}),
+            updatedAt: now,
+          })
+          .where(eq(products.id, existing.id))
+          .run();
+        productId = existing.id;
+        if (!touched.has(productId)) summary.productsUpdated += 1;
+      } else {
+        const inserted = db
+          .insert(products)
+          .values({ sku: uniqueSku(db, sku || barcode, barcode), barcode, name, category })
+          .returning()
+          .get();
+        productId = inserted.id;
+        summary.productsCreated += 1;
+      }
+      touched.add(productId);
+
+      if (qty !== null) {
+        const prev = expected.get(productId);
+        expected.set(productId, {
+          qty: (prev?.qty ?? 0) + qty,
+          unitCostCents: cost ?? prev?.unitCostCents ?? null,
+        });
+      }
+    });
+
+    for (const [productId, { qty, unitCostCents }] of expected) {
+      db.insert(sessionExpectedQuantities)
+        .values({ sessionId, productId, expectedQty: qty, unitCostCents, source: 'csv_import' })
+        .onConflictDoUpdate({
+          target: [sessionExpectedQuantities.sessionId, sessionExpectedQuantities.productId],
+          set: {
+            expectedQty: qty,
+            unitCostCents,
+            source: 'csv_import',
+            updatedAt: new Date().toISOString(),
+          },
+        })
         .run();
-      productId = existingProduct.id;
-      summary.productsUpdated += 1;
-    } else {
-      const inserted = db.insert(products).values({ sku, barcode, name, category }).returning().get();
-      productId = inserted.id;
-      summary.productsCreated += 1;
+      summary.expectedQuantitiesWritten += 1;
     }
 
-    db.insert(sessionExpectedQuantities)
-      .values({ sessionId, productId, expectedQty, source: 'csv_import' })
-      .onConflictDoUpdate({
-        target: [sessionExpectedQuantities.sessionId, sessionExpectedQuantities.productId],
-        set: { expectedQty, source: 'csv_import', updatedAt: new Date().toISOString() },
-      })
-      .run();
-
-    summary.expectedQuantitiesWritten += 1;
+    return summary;
   });
-
-  return summary;
 }

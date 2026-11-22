@@ -22,7 +22,7 @@ export const router = createBrowserRouter([
       {
         path: 'scan',
         element: (
-          <Suspense fallback={<LoadingIndicator label="Loading scanner…" />}>
+          <Suspense fallback={<LoadingIndicator label="Cargando escáner…" />}>
             <ScanPage />
           </Suspense>
         ),

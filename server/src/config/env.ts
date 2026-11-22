@@ -8,6 +8,8 @@ const envSchema = z.object({
   CLIENT_ORIGIN: z.string().default('http://localhost:5173'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  /** Time zone used for dates in exported reports. */
+  STORE_TIMEZONE: z.string().default('America/Puerto_Rico'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -26,6 +28,7 @@ export const env = {
   port: data.PORT,
   nodeEnv: data.NODE_ENV,
   logLevel: data.LOG_LEVEL,
+  storeTimeZone: data.STORE_TIMEZONE,
   /** Absolute path to the SQLite database file, resolved relative to the server package root. */
   databasePath: path.resolve(__dirname, '..', '..', data.DATABASE_PATH),
   /** Origins allowed to call the API / open a WebSocket connection (e.g. your phone's LAN URL). */

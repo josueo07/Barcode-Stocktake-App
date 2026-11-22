@@ -62,7 +62,7 @@ export function BarcodeScanner({ onDecode, deviceId, active }: BarcodeScannerPro
           setError(
             err instanceof Error
               ? err.message
-              : 'Could not start the camera. Check browser permissions and that no other app is using it.',
+              : 'No se pudo abrir la cámara. Revisa que Safari tenga permiso de cámara y que ninguna otra app la esté usando.',
           );
           return;
         }

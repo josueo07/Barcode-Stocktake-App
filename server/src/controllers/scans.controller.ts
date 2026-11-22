@@ -18,12 +18,13 @@ import {
   buildVarianceReport,
   persistVarianceReportSnapshot,
   toCsv,
+  toXlsx,
 } from '../services/varianceReport.service';
 
 function getSessionOrThrow(db: AppDatabase, id: number) {
   const session = db.select().from(stocktakeSessions).where(eq(stocktakeSessions.id, id)).get();
   if (!session) {
-    throw new AppError(`Session ${id} not found`, 404);
+    throw new AppError(`Conteo ${id} no encontrado (not found)`, 404);
   }
   return session;
 }
@@ -123,7 +124,7 @@ export function voidScan(db: AppDatabase, io?: SocketIOServer): RequestHandler {
       const id = Number(req.params.id);
       const session = getSessionOrThrow(db, id);
       if (session.status === 'completed') {
-        next(new AppError('This count is closed; scans can no longer be removed.', 409));
+        next(new AppError('Este conteo está cerrado; ya no se pueden borrar escaneos.', 409));
         return;
       }
 
@@ -174,12 +175,33 @@ export function exportVarianceReport(db: AppDatabase): RequestHandler {
 
       const report = buildVarianceReport(db, id);
       const csv = toCsv(report);
-      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="variance-report-session-${id}.csv"`,
+        `attachment; filename="reporte-diferencias-conteo-${id}.csv"`,
       );
       res.send(csv);
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
+export function exportVarianceReportXlsx(db: AppDatabase): RequestHandler {
+  return async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const session = getSessionOrThrow(db, id);
+      const buffer = await toXlsx(db, buildVarianceReport(db, id), session.name);
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="reporte-inventario-conteo-${id}.xlsx"`,
+      );
+      res.send(buffer);
     } catch (err) {
       next(err);
     }

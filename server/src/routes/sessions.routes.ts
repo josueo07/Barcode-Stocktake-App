@@ -17,17 +17,19 @@ import {
   updateSession,
 } from '../controllers/sessions.controller';
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
 
 const createSessionSchema = z.object({
   name: z.string().min(1),
   notes: z.string().nullable().optional(),
+  costEnabled: z.boolean().optional(),
 });
 
 const updateSessionSchema = z.object({
   name: z.string().min(1).optional(),
   notes: z.string().nullable().optional(),
   status: z.enum(['draft', 'active', 'completed']).optional(),
+  costEnabled: z.boolean().optional(),
 });
 
 const manualExpectedQtySchema = z.object({

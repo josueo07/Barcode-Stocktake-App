@@ -24,7 +24,7 @@ export function SessionLayout() {
       setSession(result);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load session');
+      setError(err instanceof Error ? err.message : 'No se pudo cargar el conteo');
     }
   }, [sessionId]);
 
@@ -41,23 +41,23 @@ export function SessionLayout() {
   }, [socket, refreshSession]);
 
   if (error) return <ErrorBanner message={error} />;
-  if (!session) return <LoadingIndicator label="Loading session…" />;
+  if (!session) return <LoadingIndicator label="Cargando conteo…" />;
 
   return (
     <SessionContext.Provider value={{ session, refreshSession, socket }}>
       <div className="session-layout">
         <header className="session-header">
           <Link to="/" className="back-link">
-            &larr; Sessions
+            &larr; Conteos
           </Link>
           <h1>{session.name}</h1>
           <SessionStatusBadge status={session.status} />
           <nav className="session-nav">
             <NavLink to="" end>
-              Dashboard
+              Resumen
             </NavLink>
-            <NavLink to="scan">Scan</NavLink>
-            {isSupervisor && <NavLink to="report">Report</NavLink>}
+            <NavLink to="scan">Escanear</NavLink>
+            {isSupervisor && <NavLink to="report">Reporte</NavLink>}
           </nav>
         </header>
         <main className="session-main">

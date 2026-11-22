@@ -1,9 +1,9 @@
 import type { SessionStatus } from '@barcode-stocktake/shared';
 
 const LABELS: Record<SessionStatus, string> = {
-  draft: 'Draft',
-  active: 'Active',
-  completed: 'Completed',
+  draft: 'Borrador',
+  active: 'En curso',
+  completed: 'Cerrado',
 };
 
 export function SessionStatusBadge({ status }: { status: SessionStatus }) {

@@ -20,7 +20,7 @@ export function SessionListPage() {
       setSessions(await listSessions());
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load sessions');
+      setError(err instanceof Error ? err.message : 'No se pudieron cargar los conteos');
     }
   }, []);
 
@@ -35,7 +35,7 @@ export function SessionListPage() {
       await deleteSession(sessionId);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete session');
+      setError(err instanceof Error ? err.message : 'No se pudo borrar el conteo');
     }
   };
 
@@ -49,7 +49,7 @@ export function SessionListPage() {
       setNewSessionName('');
       navigate(`/sessions/${session.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create session');
+      setError(err instanceof Error ? err.message : 'No se pudo crear el conteo');
     } finally {
       setIsCreating(false);
     }
@@ -57,17 +57,17 @@ export function SessionListPage() {
 
   return (
     <div className="session-list-page">
-      <h1>Stocktake Sessions</h1>
+      <h1>Conteos de inventario</h1>
 
       {isSupervisor && (
         <form className="new-session-form" onSubmit={handleCreate}>
           <input
-            placeholder="e.g. Warehouse A — July 2026"
+            placeholder="ej. Inventario anual 2026"
             value={newSessionName}
             onChange={(e) => setNewSessionName(e.target.value)}
           />
           <button type="submit" disabled={isCreating || !newSessionName.trim()}>
-            {isCreating ? 'Creating…' : 'New session'}
+            {isCreating ? 'Creando…' : 'Nuevo conteo'}
           </button>
         </form>
       )}
@@ -75,9 +75,7 @@ export function SessionListPage() {
       {error && <ErrorBanner message={error} />}
       {!sessions && !error && <LoadingIndicator />}
 
-      {sessions && sessions.length === 0 && (
-        <p className="empty-state">No sessions yet — create one above to get started.</p>
-      )}
+      {sessions && sessions.length === 0 && <p className="empty-state">Todavía no hay conteos.</p>}
 
       {sessions && sessions.length > 0 && (
         <ul className="session-list">
@@ -91,10 +89,10 @@ export function SessionListPage() {
                 <button
                   type="button"
                   className="link-button session-delete-button"
-                  title="Delete this draft session"
+                  title="Borrar este borrador"
                   onClick={(e) => handleDelete(e, session.id)}
                 >
-                  Delete
+                  Borrar
                 </button>
               )}
             </li>

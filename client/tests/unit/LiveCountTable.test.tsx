@@ -5,14 +5,30 @@ import type { LiveCount } from '@barcode-stocktake/shared';
 import { LiveCountTable } from '../../src/components/dashboard/LiveCountTable';
 
 const counts: LiveCount[] = [
-  { productId: 1, barcode: '111', sku: 'SKU1', name: 'Widget', expectedQty: 10, countedQty: 7 },
-  { productId: null, barcode: '999', sku: null, name: null, expectedQty: null, countedQty: 2 },
+  {
+    productId: 1,
+    barcode: '111',
+    sku: 'SKU1',
+    name: 'Widget',
+    expectedQty: 10,
+    expectedUnitCostCents: null,
+    countedQty: 7,
+  },
+  {
+    productId: null,
+    barcode: '999',
+    sku: null,
+    name: null,
+    expectedQty: null,
+    expectedUnitCostCents: null,
+    countedQty: 2,
+  },
 ];
 
 describe('LiveCountTable', () => {
   it('renders an empty state when there are no rows', () => {
     render(<LiveCountTable counts={[]} />);
-    expect(screen.getByText(/no expected quantities or scans yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/todavía no hay esperados ni escaneos/i)).toBeInTheDocument();
   });
 
   it('renders expected and unexpected-barcode rows', () => {
@@ -23,7 +39,7 @@ describe('LiveCountTable', () => {
 
   it('does not render a Remove action when onRemoveExpected is omitted', () => {
     render(<LiveCountTable counts={counts} />);
-    expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /quitar/i })).not.toBeInTheDocument();
   });
 
   it('calls onRemoveExpected with the productId when Remove is clicked', async () => {
@@ -31,7 +47,7 @@ describe('LiveCountTable', () => {
     const onRemoveExpected = vi.fn();
     render(<LiveCountTable counts={counts} onRemoveExpected={onRemoveExpected} />);
 
-    const removeButtons = screen.getAllByRole('button', { name: /remove/i });
+    const removeButtons = screen.getAllByRole('button', { name: /quitar/i });
     expect(removeButtons).toHaveLength(1); // only the row with an expected quantity gets one
     await user.click(removeButtons[0]);
 

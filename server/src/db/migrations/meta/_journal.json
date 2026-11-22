@@ -22,6 +22,20 @@
       "when": 1795356660239,
       "tag": "0002_late_scans",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1795358352692,
+      "tag": "0003_scan_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795358693933,
+      "tag": "0004_expected_cost",
+      "breakpoints": true
     }
   ]
 }

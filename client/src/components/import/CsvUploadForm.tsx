@@ -24,7 +24,7 @@ export function CsvUploadForm({ sessionId, onImported }: CsvUploadFormProps) {
       setSummary(result);
       onImported();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'CSV import failed');
+      setError(err instanceof Error ? err.message : 'No se pudo importar el archivo');
     } finally {
       setIsSubmitting(false);
     }
@@ -33,16 +33,19 @@ export function CsvUploadForm({ sessionId, onImported }: CsvUploadFormProps) {
   return (
     <form className="csv-upload-form" onSubmit={handleSubmit}>
       <label>
-        Expected quantities CSV
+        Archivo de inventario de la farmacia (Excel o CSV)
         <input
           type="file"
-          accept=".csv,text/csv"
+          accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
         />
       </label>
-      <p className="field-hint">Columns required: sku, barcode, name, expected_qty (category optional)</p>
+      <p className="field-hint">
+        Columnas: UPC (o Código), Nombre, Cantidad y Costo. SKU y Categoría son opcionales. Si la
+        farmacia no tiene inventario, no subas nada: se cuenta igual.
+      </p>
       <button type="submit" disabled={!file || isSubmitting}>
-        {isSubmitting ? 'Importing…' : 'Import CSV'}
+        {isSubmitting ? 'Importando…' : 'Importar archivo'}
       </button>
 
       {error && (
@@ -54,15 +57,15 @@ export function CsvUploadForm({ sessionId, onImported }: CsvUploadFormProps) {
       {summary && (
         <div className="import-summary">
           <p>
-            Created {summary.productsCreated}, updated {summary.productsUpdated} products —{' '}
-            {summary.expectedQuantitiesWritten} expected quantities written, {summary.rowsSkipped} rows
-            skipped.
+            Productos nuevos: {summary.productsCreated}, actualizados: {summary.productsUpdated}.
+            Esperados guardados: {summary.expectedQuantitiesWritten}. Filas omitidas:{' '}
+            {summary.rowsSkipped}.
           </p>
           {summary.errors.length > 0 && (
             <ul className="import-errors">
-              {summary.errors.map((rowError) => (
-                <li key={rowError.row}>
-                  Row {rowError.row}: {rowError.message}
+              {summary.errors.map((rowError, index) => (
+                <li key={index}>
+                  Fila {rowError.row}: {rowError.message}
                 </li>
               ))}
             </ul>
