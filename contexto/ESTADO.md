@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-_Última actualización: 2026-11-22 (trabajo de Codex y lectura de códigos QR)_
+_Última actualización: 2026-11-22 (solo códigos de barras, sin QR)_
 
 ## Objetivo
 
@@ -32,7 +32,6 @@ Base: fork de `ColterPan/Barcode-Stocktake-App` (MIT) en `josueo07/Barcode-Stock
 | **Un solo supervisor** y varios contadores (el servidor rechaza un segundo supervisor) | `assertNoOtherSupervisor` en `auth.service.ts` | #5 |
 | Perfil de cada persona: nombre, rol, actividad (escaneos, unidades, conteos), cambiar su PIN, cerrar sesión | `client/src/pages/ProfilePage.tsx`, `/api/auth/me*` | #5 |
 | Pantalla Personas: supervisor arriba, lista de contadores, añadir contador | `client/src/pages/UsersPage.tsx` | #5 |
-| La cámara también lee **códigos QR** (Quagga2 solo lee barras). Si el QR es GS1 (cajas de medicina), se usa el GTIN que trae después de "01" | `client/src/components/scanner/qrCode.ts` (jsQR) | QR |
 
 ## Piloto activo en Contabo
 
@@ -67,8 +66,7 @@ La confirmación muestra el nombre y avisa que se eliminarán sus datos y report
 
 1. **Prueba con dos iPhones**. Cámara, modo avión, reapertura de la app,
    sincronización, cierre y reportes. Usar datos ficticios.
-2. **Desplegar la lectura de QR en el piloto** (todavía no está allí) y probarla
-   en iPhone junto con «Borrar» y «Reiniciar cámara».
+2. **Desplegar `master` en el piloto** y probar en iPhone «Borrar» y «Reiniciar cámara».
 3. **Preparar producción**. Revisar dependencias, definir acceso del equipo y
    configurar un destino externo para los respaldos.
 
