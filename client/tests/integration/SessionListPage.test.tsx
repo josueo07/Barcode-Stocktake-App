@@ -30,6 +30,7 @@ const supervisorAuth: AuthContextValue = {
   isSupervisor: true,
   login: async () => {},
   logout: async () => true,
+  updateCurrentUser: () => {},
 };
 
 function renderPage() {

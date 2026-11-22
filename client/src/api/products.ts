@@ -8,7 +8,9 @@ export function searchProducts(search: string): Promise<Product[]> {
 
 export async function getProductByBarcode(barcode: string): Promise<Product | null> {
   try {
-    const res = await httpClient.get<{ product: Product }>(`/api/products/${encodeURIComponent(barcode)}`);
+    const res = await httpClient.get<{ product: Product }>(
+      `/api/products/${encodeURIComponent(barcode)}`,
+    );
     return res.product;
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) {
@@ -23,7 +25,9 @@ export function createProduct(input: CreateProductInput): Promise<Product> {
 }
 
 export function updateProduct(id: number, input: UpdateProductInput): Promise<Product> {
-  return httpClient.patch<{ product: Product }>(`/api/products/${id}`, input).then((r) => r.product);
+  return httpClient
+    .patch<{ product: Product }>(`/api/products/${id}`, input)
+    .then((r) => r.product);
 }
 
 export function deleteProduct(id: number): Promise<void> {

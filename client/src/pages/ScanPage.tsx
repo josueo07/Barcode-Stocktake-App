@@ -141,7 +141,8 @@ export function ScanPage() {
         <form className="typed-barcode-form" onSubmit={handleTypedSubmit}>
           <input
             inputMode="numeric"
-            placeholder="¿No lee la etiqueta? Escribe el código"
+            placeholder="Escribe el código"
+            aria-label="Escribir el código a mano"
             value={typedBarcode}
             onChange={(e) => setTypedBarcode(e.target.value)}
           />

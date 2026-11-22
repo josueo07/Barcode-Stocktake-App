@@ -1,7 +1,9 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { LoadingIndicator } from './components/common/LoadingIndicator';
+import { AppShell } from './AppShell';
 import { SessionLayout } from './context/SessionLayout';
+import { ProfilePage } from './pages/ProfilePage';
 import { SessionDashboardPage } from './pages/SessionDashboardPage';
 import { SessionListPage } from './pages/SessionListPage';
 import { UsersPage } from './pages/UsersPage';
@@ -12,22 +14,28 @@ import { VarianceReportPage } from './pages/VarianceReportPage';
 const ScanPage = lazy(() => import('./pages/ScanPage').then((m) => ({ default: m.ScanPage })));
 
 export const router = createBrowserRouter([
-  { path: '/', element: <SessionListPage /> },
-  { path: '/users', element: <UsersPage /> },
   {
-    path: '/sessions/:id',
-    element: <SessionLayout />,
+    element: <AppShell />,
     children: [
-      { index: true, element: <SessionDashboardPage /> },
+      { path: '/', element: <SessionListPage /> },
+      { path: '/perfil', element: <ProfilePage /> },
+      { path: '/users', element: <UsersPage /> },
       {
-        path: 'scan',
-        element: (
-          <Suspense fallback={<LoadingIndicator label="Cargando escáner…" />}>
-            <ScanPage />
-          </Suspense>
-        ),
+        path: '/sessions/:id',
+        element: <SessionLayout />,
+        children: [
+          { index: true, element: <SessionDashboardPage /> },
+          {
+            path: 'scan',
+            element: (
+              <Suspense fallback={<LoadingIndicator label="Cargando escáner…" />}>
+                <ScanPage />
+              </Suspense>
+            ),
+          },
+          { path: 'report', element: <VarianceReportPage /> },
+        ],
       },
-      { path: 'report', element: <VarianceReportPage /> },
     ],
   },
 ]);

@@ -45,14 +45,16 @@ export function SessionLayout() {
 
   return (
     <SessionContext.Provider value={{ session, refreshSession, socket }}>
-      <div className="session-layout">
+      <div className="page session-layout">
         <header className="session-header">
           <Link to="/" className="back-link">
-            &larr; Conteos
+            ‹ Conteos
           </Link>
-          <h1>{session.name}</h1>
-          <SessionStatusBadge status={session.status} />
-          <nav className="session-nav">
+          <div className="session-title-row">
+            <h1 className="large-title">{session.name}</h1>
+            <SessionStatusBadge status={session.status} />
+          </div>
+          <nav className="segmented" aria-label="Secciones del conteo">
             <NavLink to="" end>
               Resumen
             </NavLink>

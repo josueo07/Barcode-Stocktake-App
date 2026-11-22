@@ -19,6 +19,8 @@ export interface AuthContextValue {
   login: (username: string, pin: string) => Promise<void>;
   /** Resolves false if the person chose to stay signed in because of unsent scans. */
   logout: () => Promise<boolean>;
+  /** Replaces the signed-in user's details (e.g. after renaming in the profile). */
+  updateCurrentUser: (user: AuthUser) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -65,9 +67,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
 
+  const updateCurrentUser = useCallback((next: AuthUser) => {
+    const stored = loadAuth();
+    if (stored) saveAuth({ ...stored, user: next });
+    setUser(next);
+  }, []);
+
   const value = useMemo(
-    () => ({ user, isSupervisor: user?.role === 'supervisor', login, logout }),
-    [user, login, logout],
+    () => ({ user, isSupervisor: user?.role === 'supervisor', login, logout, updateCurrentUser }),
+    [user, login, logout, updateCurrentUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

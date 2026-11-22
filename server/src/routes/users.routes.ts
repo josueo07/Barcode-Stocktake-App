@@ -9,6 +9,7 @@ import { AppError } from '../middleware/errorHandler';
 import { validateBody } from '../middleware/validateRequest';
 import {
   MIN_PIN_LENGTH,
+  assertNoOtherSupervisor,
   createUser,
   hashPin,
   revokeAllTokensForUser,
@@ -22,7 +23,7 @@ const createUserSchema = z.object({
     .trim()
     .min(2)
     .max(64)
-    .regex(/^[a-zA-Z0-9._-]+$/, 'Use letters, numbers, dot, dash or underscore'),
+    .regex(/^[a-zA-Z0-9._-]+$/, 'Usa letras, números, punto, guion o guion bajo'),
   displayName: z.string().trim().min(1).max(100),
   role: roleSchema,
   pin: z.string().min(MIN_PIN_LENGTH).max(128),
@@ -70,7 +71,7 @@ export function createUsersRouter(db: AppDatabase): Router {
       const id = Number(req.params.id);
       const body = req.body as z.infer<typeof updateUserSchema>;
       const existing = db.select().from(users).where(eq(users.id, id)).get();
-      if (!existing) throw new AppError(`User ${id} not found`, 404);
+      if (!existing) throw new AppError(`No existe la persona ${id}.`, 404);
 
       const me = currentUser(req);
       if (me.id === id && (body.active === false || (body.role && body.role !== 'supervisor'))) {
@@ -79,6 +80,11 @@ export function createUsersRouter(db: AppDatabase): Router {
           400,
         );
       }
+
+      const becomesActiveSupervisor =
+        (body.role ?? existing.role) === 'supervisor' && (body.active ?? existing.active);
+      const wasActiveSupervisor = existing.role === 'supervisor' && existing.active;
+      if (becomesActiveSupervisor && !wasActiveSupervisor) assertNoOtherSupervisor(db, id);
 
       const row = db
         .update(users)

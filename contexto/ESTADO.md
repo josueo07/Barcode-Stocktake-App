@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-_Última actualización: 2026-11-22_
+_Última actualización: 2026-11-22 (estilo iPhone y perfil)_
 
 ## Objetivo
 
@@ -28,6 +28,10 @@ Base: fork de `ColterPan/Barcode-Stocktake-App` (MIT) en `josueo07/Barcode-Stock
 | Reporte de diferencias en unidades y dinero, resumen de faltantes/sobrantes, filtro "solo diferencias" | `server/src/services/varianceReport.service.ts`, `client/src/components/report/` | #4 |
 | Descargar reporte en Excel (hojas Diferencias y Detalle) o CSV | mismo | #4 |
 | Carpeta `contexto/` con actualización automática del historial | `contexto/`, `.github/workflows/` | #4 |
+| Diseño estilo iPhone: letra del sistema, tarjetas y listas agrupadas, botones grandes, control segmentado, modo oscuro | `client/src/styles/index.css`, `client/src/AppShell.tsx` | #5 |
+| **Un solo supervisor** y varios contadores (el servidor rechaza un segundo supervisor) | `assertNoOtherSupervisor` en `auth.service.ts` | #5 |
+| Perfil de cada persona: nombre, rol, actividad (escaneos, unidades, conteos), cambiar su PIN, cerrar sesión | `client/src/pages/ProfilePage.tsx`, `/api/auth/me*` | #5 |
+| Pantalla Personas: supervisor arriba, lista de contadores, añadir contador | `client/src/pages/UsersPage.tsx` | #5 |
 
 ## Piloto activo en Contabo
 

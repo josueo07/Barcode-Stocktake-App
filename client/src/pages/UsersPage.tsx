@@ -1,23 +1,18 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import type { UserRole, UserSummary } from '@barcode-stocktake/shared';
+import type { UserSummary } from '@barcode-stocktake/shared';
 import { createUser, listUsers, updateUser } from '../api/users';
 import { useAuth } from '../auth/AuthContext';
+import { Avatar } from '../components/common/Avatar';
 import { ErrorBanner } from '../components/common/ErrorBanner';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
 
-const ROLE_LABEL: Record<UserRole, string> = { supervisor: 'Supervisor', counter: 'Contador' };
-
+/** One supervisor runs the count; everyone else is a counter. */
 export function UsersPage() {
-  const { user: me } = useAuth();
+  const { user: me, isSupervisor } = useAuth();
   const [users, setUsers] = useState<UserSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    username: '',
-    displayName: '',
-    role: 'counter' as UserRole,
-    pin: '',
-  });
+  const [form, setForm] = useState({ username: '', displayName: '', pin: '' });
   const [isSaving, setIsSaving] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -30,18 +25,26 @@ export function UsersPage() {
   }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    if (isSupervisor) refresh();
+  }, [refresh, isSupervisor]);
+
+  if (!isSupervisor) {
+    return (
+      <div className="page">
+        <p className="empty-state">Solo el supervisor puede administrar personas.</p>
+      </div>
+    );
+  }
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await createUser(form);
-      setForm({ username: '', displayName: '', role: 'counter', pin: '' });
+      await createUser({ ...form, role: 'counter' });
+      setForm({ username: '', displayName: '', pin: '' });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear la persona');
+      setError(err instanceof Error ? err.message : 'No se pudo añadir');
     } finally {
       setIsSaving(false);
     }
@@ -67,83 +70,103 @@ export function UsersPage() {
     }
   };
 
-  return (
-    <div className="users-page">
-      <Link to="/" className="back-link">
-        &larr; Sesiones
-      </Link>
-      <h1>Personas</h1>
+  const supervisors = users?.filter((u) => u.role === 'supervisor' && u.active) ?? [];
+  const counters = users?.filter((u) => u.role === 'counter') ?? [];
 
-      <form className="user-form" onSubmit={handleCreate}>
-        <input
-          placeholder="Usuario (ej. maria)"
-          autoCapitalize="none"
-          value={form.username}
-          onChange={(e) => setForm({ ...form, username: e.target.value })}
-          required
-        />
-        <input
-          placeholder="Nombre"
-          value={form.displayName}
-          onChange={(e) => setForm({ ...form, displayName: e.target.value })}
-          required
-        />
-        <select
-          value={form.role}
-          onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
-        >
-          <option value="counter">Contador</option>
-          <option value="supervisor">Supervisor</option>
-        </select>
-        <input
-          type="password"
-          placeholder="PIN (mín. 6)"
-          minLength={6}
-          value={form.pin}
-          onChange={(e) => setForm({ ...form, pin: e.target.value })}
-          required
-        />
-        <button type="submit" disabled={isSaving}>
-          {isSaving ? 'Guardando…' : 'Añadir'}
+  const row = (u: UserSummary) => (
+    <li key={u.id} className={`list-row person-row${u.active ? '' : ' person-row--inactive'}`}>
+      <Avatar name={u.displayName} />
+      <div className="person-text">
+        <span className="person-name">
+          {u.displayName}
+          {u.id === me?.id && <span className="list-row-detail"> (tú)</span>}
+        </span>
+        <span className="list-row-detail">
+          @{u.username}
+          {!u.active && ' · desactivado'}
+        </span>
+      </div>
+      <div className="person-actions">
+        <button type="button" className="button-plain" onClick={() => resetPin(u)}>
+          PIN
         </button>
-      </form>
+        {u.id !== me?.id && (
+          <button
+            type="button"
+            className={u.active ? 'button-plain button-plain--danger' : 'button-plain'}
+            onClick={() => toggleActive(u)}
+          >
+            {u.active ? 'Desactivar' : 'Activar'}
+          </button>
+        )}
+      </div>
+    </li>
+  );
+
+  return (
+    <div className="page users-page">
+      <Link to="/perfil" className="back-link">
+        ‹ Perfil
+      </Link>
+      <h1 className="large-title">Personas</h1>
 
       {error && <ErrorBanner message={error} />}
       {!users && !error && <LoadingIndicator />}
 
       {users && (
-        <table>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Usuario</th>
-              <th>Rol</th>
-              <th>Estado</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id}>
-                <td>{u.displayName}</td>
-                <td>{u.username}</td>
-                <td>{ROLE_LABEL[u.role]}</td>
-                <td>{u.active ? 'Activo' : 'Desactivado'}</td>
-                <td>
-                  <button type="button" className="link-button" onClick={() => resetPin(u)}>
-                    Cambiar PIN
-                  </button>
-                  {u.id !== me?.id && (
-                    <button type="button" className="link-button" onClick={() => toggleActive(u)}>
-                      {u.active ? 'Desactivar' : 'Activar'}
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <h2 className="group-title">Supervisor</h2>
+          <ul className="list-group">{supervisors.map(row)}</ul>
+
+          <h2 className="group-title">Contadores ({counters.filter((u) => u.active).length})</h2>
+          {counters.length === 0 ? (
+            <p className="group-footer">Todavía no hay contadores. Añádelos abajo.</p>
+          ) : (
+            <ul className="list-group">{counters.map(row)}</ul>
+          )}
+        </>
       )}
+
+      <h2 className="group-title">Añadir contador</h2>
+      <form className="card form-card" onSubmit={handleCreate}>
+        <label className="field">
+          <span>Nombre</span>
+          <input
+            placeholder="Ana Rivera"
+            value={form.displayName}
+            onChange={(e) => setForm({ ...form, displayName: e.target.value })}
+            required
+          />
+        </label>
+        <label className="field">
+          <span>Usuario para entrar</span>
+          <input
+            placeholder="ana"
+            autoCapitalize="none"
+            autoCorrect="off"
+            value={form.username}
+            onChange={(e) => setForm({ ...form, username: e.target.value })}
+            required
+          />
+        </label>
+        <label className="field">
+          <span>PIN (mínimo 6)</span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            minLength={6}
+            value={form.pin}
+            onChange={(e) => setForm({ ...form, pin: e.target.value })}
+            required
+          />
+        </label>
+        <button type="submit" disabled={isSaving}>
+          {isSaving ? 'Guardando…' : 'Añadir contador'}
+        </button>
+      </form>
+      <p className="group-footer">
+        Solo hay un supervisor. Todas las personas que añadas aquí son contadores.
+      </p>
     </div>
   );
 }

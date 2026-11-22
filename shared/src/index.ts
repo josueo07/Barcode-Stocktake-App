@@ -35,4 +35,11 @@ export type {
 } from './constants.js';
 export { SOCKET_EVENTS, MAX_BATCH_SCAN_SIZE, SCAN_DEBOUNCE_MS } from './constants.js';
 
-export type { UserRole, AuthUser, LoginRequest, LoginResponse, UserSummary } from './types/auth.js';
+export type {
+  UserRole,
+  AuthUser,
+  LoginRequest,
+  LoginResponse,
+  UserSummary,
+  ProfileStats,
+} from './types/auth.js';

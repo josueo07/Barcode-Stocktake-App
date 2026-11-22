@@ -56,13 +56,14 @@ export function SessionListPage() {
   };
 
   return (
-    <div className="session-list-page">
-      <h1>Conteos de inventario</h1>
+    <div className="page session-list-page">
+      <h1 className="large-title">Conteos</h1>
 
       {isSupervisor && (
-        <form className="new-session-form" onSubmit={handleCreate}>
+        <form className="card new-session-form" onSubmit={handleCreate}>
           <input
             placeholder="ej. Inventario anual 2026"
+            aria-label="Nombre del conteo nuevo"
             value={newSessionName}
             onChange={(e) => setNewSessionName(e.target.value)}
           />
@@ -78,7 +79,7 @@ export function SessionListPage() {
       {sessions && sessions.length === 0 && <p className="empty-state">Todavía no hay conteos.</p>}
 
       {sessions && sessions.length > 0 && (
-        <ul className="session-list">
+        <ul className="list-group session-list">
           {sessions.map((session) => (
             <li key={session.id}>
               <Link to={`/sessions/${session.id}`}>
