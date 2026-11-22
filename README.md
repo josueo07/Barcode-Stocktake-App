@@ -1,5 +1,7 @@
 # Barcode Stocktake App
 
+> **Inventario J&R:** el estado del proyecto, lo que falta y las decisiones están en [`contexto/`](contexto/README.md).
+
 A mobile-friendly stocktake tool: scan product barcodes with your phone camera (or a PC
 webcam), watch live counts update on a dashboard in real time, and generate an
 expected-vs-counted variance report at the end — replacing a pen-and-paper stocktake that

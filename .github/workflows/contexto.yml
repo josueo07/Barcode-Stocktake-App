@@ -1,0 +1,48 @@
+name: Contexto
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  # En cada PR: el código no puede cambiar sin que contexto/ESTADO.md cambie también.
+  revisar-estado:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Revisar contexto/ESTADO.md
+        run: scripts/check-contexto.sh "origin/${{ github.base_ref }}"
+
+  # Al entrar algo a master: añade una línea a contexto/HISTORIAL.md.
+  historial:
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[historial]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Añadir al historial
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          title=$(printf '%s\n' "$MESSAGE" | head -n1)
+          # "Merge pull request #4 from user/rama" → usa el título del PR (línea 3) y su número.
+          if [[ "$title" =~ ^Merge\ pull\ request\ \#([0-9]+) ]]; then
+            num="${BASH_REMATCH[1]}"
+            pr_title=$(printf '%s\n' "$MESSAGE" | sed -n '3p')
+            title="${pr_title:-$title} (PR #$num)"
+          fi
+          line="- $(TZ=America/Puerto_Rico date +%F) — $title"
+          awk -v line="$line" '{print} /<!-- nuevos-cambios -->/{print line}' contexto/HISTORIAL.md > /tmp/h.md
+          mv /tmp/h.md contexto/HISTORIAL.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add contexto/HISTORIAL.md
+          git commit -m "contexto: actualizar historial [historial]" || exit 0
+          git push
