@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-_Última actualización: 2026-11-22 (lectura de códigos QR)_
+_Última actualización: 2026-11-22 (trabajo de Codex y lectura de códigos QR)_
 
 ## Objetivo
 
@@ -36,10 +36,21 @@ Base: fork de `ColterPan/Barcode-Stocktake-App` (MIT) en `josueo07/Barcode-Stock
 
 ## Piloto activo en Contabo
 
-El piloto privado usa el VPS existente de Jarvis, Node.js 22 en Docker Compose,
-Caddy, HTTPS por Tailscale y copias diarias de SQLite. Se desplegó el commit
-`69e02f8` de `farmacia/archivo-y-reporte`. La guía recoge el acceso,
-la operación, la recuperación y las pruebas pendientes en [PILOTO-CONTABO.md](PILOTO-CONTABO.md).
+El piloto privado usa el VPS de Jarvis, Node.js 22 en Docker Compose, Caddy,
+HTTPS por Tailscale y copias diarias de SQLite. El 22 de noviembre se actualizó
+desde la base `69e02f8` hasta `17e32e983bd2f708625ec4143d640a8940b9dafb`
+de `master`, con los PR #3, #4 y #5 integrados.
+
+Se ejecutó el migrador de producción sobre la base existente.
+`0004_expected_cost` ya estaba registrada y se verificó la columna de costo
+esperado. Pasaron las comprobaciones de integridad, HTTPS, salud de la API y
+acceso de ambos roles. Quedó un supervisor activo. La
+[guía del piloto](PILOTO-CONTABO.md#actualización-a-master-del-22-de-noviembre-de-2026)
+registra las copias previas y el procedimiento de recuperación.
+
+Se confirmó la lectura de un código de barras físico en un iPhone 16 Pro Max
+con la versión del piloto. Sigue pendiente la prueba con dos teléfonos y modo
+avión.
 
 El ajuste de importación está activo en el piloto sobre la base `17e32e9`.
 Reconoce los encabezados de la farmacia, admite CSV con
@@ -54,12 +65,12 @@ La confirmación muestra el nombre y avisa que se eliminarán sus datos y report
 
 ## Falta (en orden)
 
-1. **Prueba con dos iPhones**. Cámara, modo avión, reapertura de la app, sincronización,
-   cierre y reportes. Usar datos ficticios.
-2. **Actualizar el piloto en Contabo** a `master` (PR #3, #4 y #5 ya unidos el 2026-11-22;
-   trae la migración `0004_expected_cost`). Luego resolver los ajustes detectados en el piloto.
-3. **Preparar producción**. Revisar dependencias, definir acceso del equipo y configurar
-   un destino externo para los respaldos.
+1. **Prueba con dos iPhones**. Cámara, modo avión, reapertura de la app,
+   sincronización, cierre y reportes. Usar datos ficticios.
+2. **Desplegar la lectura de QR en el piloto** (todavía no está allí) y probarla
+   en iPhone junto con «Borrar» y «Reiniciar cámara».
+3. **Preparar producción**. Revisar dependencias, definir acceso del equipo y
+   configurar un destino externo para los respaldos.
 
 ## Ideas no aprobadas todavía
 
