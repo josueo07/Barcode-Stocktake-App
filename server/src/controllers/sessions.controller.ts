@@ -134,10 +134,10 @@ export function deleteSession(db: AppDatabase): RequestHandler {
       const id = Number(req.params.id);
       const existing = getSessionOrThrow(db, id);
 
-      if (existing.status !== 'draft') {
+      if (existing.status !== 'draft' && req.query.confirm !== 'true') {
         next(
           new AppError(
-            'Solo se pueden borrar conteos en borrador. Un conteo iniciado se conserva como historial.',
+            'Confirma el borrado permanente de este conteo y sus datos.',
             409,
           ),
         );
@@ -163,7 +163,15 @@ export function importSessionCsv(db: AppDatabase, io?: SocketIOServer): RequestH
         return;
       }
 
-      const summary = await importInventoryFile(db, id, req.file.buffer, req.file.originalname);
+      const selection: unknown = req.body.quantityColumn;
+      if (selection !== undefined && (typeof selection !== 'string' || !/^\d+$/.test(selection))) {
+        next(new AppError('Selecciona una columna válida de cantidad esperada.', 400));
+        return;
+      }
+      const summary = await importInventoryFile(db, id, req.file.buffer, req.file.originalname, {
+        requireQuantity: req.body.requireQuantity === 'true',
+        quantityColumn: selection === undefined ? undefined : Number(selection),
+      });
       io?.to(`session:${id}`).emit(SOCKET_EVENTS.EXPECTED_QTY_UPDATED, { sessionId: id });
       res.json({ summary });
     } catch (err) {

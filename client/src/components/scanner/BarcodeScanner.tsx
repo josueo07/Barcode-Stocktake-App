@@ -8,6 +8,7 @@ export interface BarcodeScannerProps {
   /** Specific camera to use (from CameraDeviceSelect); omit to request the rear-facing camera. */
   deviceId?: string;
   active: boolean;
+  restartCount?: number;
 }
 
 const READERS: QuaggaJSCodeReader[] = [
@@ -22,8 +23,9 @@ interface QuaggaDetectionResult {
   codeResult: { code: string | null };
 }
 
-export function BarcodeScanner({ onDecode, deviceId, active }: BarcodeScannerProps) {
+export function BarcodeScanner({ onDecode, deviceId, active, restartCount = 0 }: BarcodeScannerProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const cameraStoppedRef = useRef<Promise<void> | null>(null);
   const debouncerRef = useRef(new ScanDebouncer());
   const [error, setError] = useState<string | null>(null);
 
@@ -38,47 +40,57 @@ export function BarcodeScanner({ onDecode, deviceId, active }: BarcodeScannerPro
   );
 
   useEffect(() => {
-    if (!active || !viewportRef.current) return undefined;
+    const viewport = viewportRef.current;
+    if (!active || !viewport) return undefined;
 
     const constraints: MediaTrackConstraints = deviceId
       ? { deviceId: { exact: deviceId } }
       : { facingMode: 'environment' };
 
     let cancelled = false;
+    let opened = false;
 
-    Quagga.init(
-      {
-        inputStream: {
-          type: 'LiveStream',
-          target: viewportRef.current,
-          constraints,
+    const openCamera = () => {
+      if (cancelled) return;
+      opened = true;
+      Quagga.init(
+        {
+          inputStream: {
+            type: 'LiveStream',
+            target: viewport,
+            constraints,
+          },
+          decoder: { readers: READERS },
+          locate: true,
         },
-        decoder: { readers: READERS },
-        locate: true,
-      },
-      (err: unknown) => {
-        if (cancelled) return;
-        if (err) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : 'No se pudo abrir la cámara. Revisa que Safari tenga permiso de cámara y que ninguna otra app la esté usando.',
-          );
-          return;
-        }
-        setError(null);
-        Quagga.start();
-      },
-    );
+        (err: unknown) => {
+          if (cancelled) return;
+          if (err) {
+            setError(
+              err instanceof Error
+                ? err.message
+                : 'No se pudo abrir la cámara. Revisa que Safari tenga permiso de cámara y que ninguna otra app la esté usando.',
+            );
+            return;
+          }
+          setError(null);
+          Quagga.start();
+        },
+      );
 
-    Quagga.onDetected(handleDetected);
+      Quagga.onDetected(handleDetected);
+    };
+
+    if (cameraStoppedRef.current) void cameraStoppedRef.current.then(openCamera);
+    else openCamera();
 
     return () => {
       cancelled = true;
+      if (!opened) return;
       Quagga.offDetected(handleDetected);
-      Quagga.stop();
+      cameraStoppedRef.current = Promise.resolve(Quagga.stop()).catch(() => undefined);
     };
-  }, [active, deviceId, handleDetected]);
+  }, [active, deviceId, handleDetected, restartCount]);
 
   return (
     <div className="barcode-scanner">

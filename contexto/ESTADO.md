@@ -40,6 +40,17 @@ Caddy, HTTPS por Tailscale y copias diarias de SQLite. Se desplegó el commit
 `69e02f8` de `farmacia/archivo-y-reporte`. La guía recoge el acceso,
 la operación, la recuperación y las pruebas pendientes en [PILOTO-CONTABO.md](PILOTO-CONTABO.md).
 
+El ajuste de importación está activo en el piloto sobre la base `17e32e9`.
+Reconoce los encabezados de la farmacia, admite CSV con
+coma, punto y coma o tabulación, y abre Reporte si guardó cantidades sin
+errores. Si falta una columna de cantidad clara, pide elegirla.
+
+El escáner permite reiniciar la cámara y repetir una lectura descartando
+el código pendiente sin guardarlo.
+
+En Conteos, el supervisor puede borrar borradores, conteos en curso y cerrados.
+La confirmación muestra el nombre y avisa que se eliminarán sus datos y reporte.
+
 ## Falta (en orden)
 
 1. **Prueba con dos iPhones**. Cámara, modo avión, reapertura de la app, sincronización,

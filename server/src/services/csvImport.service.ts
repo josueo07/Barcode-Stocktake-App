@@ -33,6 +33,11 @@ const HEADER_ALIASES: Record<Field, string[]> = {
     'qty',
     'quantity',
     'cantidad',
+    'cantidadsistema',
+    'cantidadesperada',
+    'cantidadenstock',
+    'systemquantity',
+    'expectedquantity',
     'cant',
     'existencia',
     'existencias',
@@ -40,7 +45,7 @@ const HEADER_ALIASES: Record<Field, string[]> = {
     'onhand',
     'stock',
   ],
-  cost: ['cost', 'costo', 'unitcost', 'costounitario', 'costounidad', 'costoporunidad'],
+  cost: ['cost', 'costo', 'unitcost', 'costounitario', 'costounidad', 'costoporunidad', 'costounitariousd'],
   sku: ['sku', 'itemnumber', 'itemno', 'numerodearticulo', 'codigointerno'],
   category: ['category', 'categoria', 'departamento', 'department'],
 };
@@ -95,16 +100,23 @@ function emptySummary(): CsvImportSummary {
 
 function parseCsvRows(fileBuffer: Buffer): string[][] {
   const text = fileBuffer.toString('utf8').replace(/^\ufeff/, '');
+  const options = { skip_empty_lines: true, trim: true, relax_column_count: true };
+  const delimiter = [',', ';', '\t'].find((candidate) => {
+    try {
+      const preview = parse(text, { ...options, delimiter: candidate, to: MAX_HEADER_SEARCH_ROWS }) as string[][];
+      return preview.some((row) => {
+        const header = mapHeader(row);
+        return header.barcode !== undefined && header.name !== undefined;
+      });
+    } catch {
+      return false;
+    }
+  });
   const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
-  // Excel in Spanish saves "CSV" with semicolons.
-  const delimiter =
-    (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0) ? ';' : ',';
-  return parse(text, {
-    delimiter,
-    skip_empty_lines: true,
-    trim: true,
-    relax_column_count: true,
-  }) as string[][];
+  const fallback = (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0)
+    ? ';'
+    : ',';
+  return parse(text, { ...options, delimiter: delimiter ?? fallback }) as string[][];
 }
 
 function cellText(value: ExcelJS.CellValue): string {
@@ -141,6 +153,11 @@ function isXlsx(fileBuffer: Buffer, filename?: string): boolean {
   return fileBuffer.length > 4 && fileBuffer.readUInt32LE(0) === 0x04034b50;
 }
 
+interface QuantityMapping {
+  requireQuantity?: boolean;
+  quantityColumn?: number;
+}
+
 /**
  * Imports the pharmacy's inventory file (CSV or Excel) into a session: every product with its
  * barcode (UPC), name, expected quantity and unit cost. Only the barcode and name are required;
@@ -151,6 +168,7 @@ export async function importInventoryFile(
   sessionId: number,
   fileBuffer: Buffer,
   filename?: string,
+  mapping?: QuantityMapping,
 ): Promise<CsvImportSummary> {
   if (isXlsx(fileBuffer, filename)) {
     let rows: string[][];
@@ -164,9 +182,9 @@ export async function importInventoryFile(
       });
       return summary;
     }
-    return importRows(db, sessionId, rows);
+    return importRows(db, sessionId, rows, mapping);
   }
-  return importCsv(db, sessionId, fileBuffer);
+  return importCsv(db, sessionId, fileBuffer, mapping);
 }
 
 /** CSV-only entry point (also used by the demo seed). */
@@ -174,6 +192,7 @@ export function importCsv(
   db: AppDatabase,
   sessionId: number,
   fileBuffer: Buffer,
+  mapping?: QuantityMapping,
 ): CsvImportSummary {
   let rows: string[][];
   try {
@@ -183,7 +202,7 @@ export function importCsv(
     summary.errors.push({ row: 0, message: `No se pudo leer el CSV: ${(err as Error).message}` });
     return summary;
   }
-  return importRows(db, sessionId, rows);
+  return importRows(db, sessionId, rows, mapping);
 }
 
 function uniqueSku(db: AppDatabase, wanted: string, barcode: string, productId?: number): string {
@@ -194,7 +213,12 @@ function uniqueSku(db: AppDatabase, wanted: string, barcode: string, productId?:
   return `${barcode}-${Date.now()}`;
 }
 
-function importRows(db: AppDatabase, sessionId: number, rows: string[][]): CsvImportSummary {
+function importRows(
+  db: AppDatabase,
+  sessionId: number,
+  rows: string[][],
+  mapping: QuantityMapping = {},
+): CsvImportSummary {
   const summary = emptySummary();
 
   const headerIndex = rows
@@ -214,6 +238,19 @@ function importRows(db: AppDatabase, sessionId: number, rows: string[][]): CsvIm
       row: headerIndex + 1,
       message: 'Falta la columna "Nombre" o "Descripción".',
     });
+    return summary;
+  }
+  const header = rows[headerIndex] ?? [];
+  const quantityCandidates = header.filter((cell) => HEADER_ALIASES.qty.includes(normalizeHeader(cell)));
+  if (mapping.quantityColumn !== undefined) {
+    const index = mapping.quantityColumn;
+    if (!header[index]?.trim() || index === columns.barcode || index === columns.name) {
+      summary.errors.push({ row: headerIndex + 1, message: 'Selecciona una columna válida de cantidad esperada.' });
+      return summary;
+    }
+    columns.qty = index;
+  } else if (mapping.requireQuantity && (columns.qty === undefined || quantityCandidates.length > 1)) {
+    summary.quantityHeaders = header;
     return summary;
   }
   const hasQty = columns.qty !== undefined;

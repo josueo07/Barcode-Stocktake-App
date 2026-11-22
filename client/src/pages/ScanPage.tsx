@@ -24,6 +24,7 @@ export function ScanPage() {
   const syncState = useOfflineSync(session.id);
   const [recentScans, setRecentScans] = useState<QueuedScan[]>([]);
   const [deviceId, setDeviceId] = useState<string | undefined>();
+  const [cameraRestartCount, setCameraRestartCount] = useState(0);
   const [lastConfirmed, setLastConfirmed] = useState<{ barcode: string; count: number } | null>(
     null,
   );
@@ -114,6 +115,12 @@ export function ScanPage() {
     handleDecode(code);
   };
 
+  function restartScan() {
+    setPending(null);
+    setTypedBarcode('');
+    setCameraRestartCount((count) => count + 1);
+  }
+
   if (session.status !== 'active') {
     return (
       <p className="scan-page-inactive">
@@ -126,7 +133,17 @@ export function ScanPage() {
     <div className="scan-page">
       <SyncStatusBanner {...syncState} />
       <CameraDeviceSelect value={deviceId} onChange={setDeviceId} />
-      <BarcodeScanner active onDecode={handleDecode} deviceId={deviceId} />
+      <BarcodeScanner
+        active
+        onDecode={handleDecode}
+        deviceId={deviceId}
+        restartCount={cameraRestartCount}
+      />
+      {!pending && (
+        <button type="button" className="button-secondary" onClick={restartScan}>
+          Reiniciar cámara
+        </button>
+      )}
       {pending ? (
         <ScanEntryPanel
           key={pending.scannedAt}
@@ -135,7 +152,7 @@ export function ScanPage() {
           productLookup={lookup.status}
           costEnabled={session.costEnabled}
           onSave={handleSave}
-          onCancel={() => setPending(null)}
+          onCancel={restartScan}
         />
       ) : (
         <form className="typed-barcode-form" onSubmit={handleTypedSubmit}>

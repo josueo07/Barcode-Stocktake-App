@@ -174,7 +174,7 @@ deliberate, documented restriction that protects stocktake history from accident
 | Entity | Create | Read | Update | Delete |
 |---|---|---|---|---|
 | Products | `POST /api/products` | `GET /api/products`, `GET /api/products/:barcode` | `PATCH /api/products/:id` | `DELETE /api/products/:id` (blocked with `409` if referenced by any expected-quantity row or scan) |
-| Sessions | `POST /api/sessions` | `GET /api/sessions`, `GET /api/sessions/:id` | `PATCH /api/sessions/:id` | `DELETE /api/sessions/:id` (only while `status: draft`) |
+| Sessions | `POST /api/sessions` | `GET /api/sessions`, `GET /api/sessions/:id` | `PATCH /api/sessions/:id` | `DELETE /api/sessions/:id` (supervisors, with `?confirm=true` for active or completed sessions) |
 | Expected quantities | `POST /api/sessions/:id/expected-quantities`, CSV import | `GET /api/sessions/:id/expected-quantities` | `POST .../expected-quantities` again (upsert) | `DELETE /api/sessions/:id/expected-quantities/:productId` |
 | Scan events | `POST /api/sessions/:id/scans(/batch)` | `GET /api/sessions/:id/scans`, `GET /api/sessions/:id/counts` | *(intentionally none — append-only; correct via void + rescan)* | `DELETE /api/sessions/:id/scans/:scanId` |
 

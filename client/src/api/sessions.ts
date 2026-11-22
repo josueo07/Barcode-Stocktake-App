@@ -56,9 +56,15 @@ export function updateSession(id: number, input: UpdateSessionInput): Promise<St
     .then((r) => r.session);
 }
 
-export function importSessionCsv(id: number, file: File): Promise<CsvImportSummary> {
+export function importSessionCsv(
+  id: number,
+  file: File,
+  quantityColumn?: number,
+): Promise<CsvImportSummary> {
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('requireQuantity', 'true');
+  if (quantityColumn !== undefined) formData.append('quantityColumn', String(quantityColumn));
   return httpClient
     .post<{ summary: CsvImportSummary }>(`/api/sessions/${id}/import-csv`, formData)
     .then((r) => r.summary);
@@ -84,5 +90,5 @@ export function deleteExpectedQuantity(sessionId: number, productId: number): Pr
 }
 
 export function deleteSession(id: number): Promise<void> {
-  return httpClient.delete(`/api/sessions/${id}`);
+  return httpClient.delete(`/api/sessions/${id}?confirm=true`);
 }

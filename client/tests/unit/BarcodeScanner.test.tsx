@@ -31,6 +31,7 @@ describe('BarcodeScanner', () => {
     detectedHandlers.length = 0;
     mockInit.mockClear();
     mockStart.mockClear();
+    mockStop.mockReset();
   });
 
   it('starts Quagga and forwards a decoded barcode to onDecode', async () => {
@@ -53,6 +54,19 @@ describe('BarcodeScanner', () => {
     detectedHandlers[0]?.({ codeResult: { code: '1234567890123' } });
 
     expect(onDecode).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits for the previous camera to stop before restarting', async () => {
+    let stopped!: () => void;
+    mockStop.mockReturnValueOnce(new Promise<void>((resolve) => { stopped = resolve; }));
+    const onDecode = vi.fn();
+    const { rerender } = render(<BarcodeScanner active onDecode={onDecode} />);
+    rerender(<BarcodeScanner active onDecode={onDecode} restartCount={1} />);
+
+    expect(mockStop).toHaveBeenCalledOnce();
+    expect(mockInit).toHaveBeenCalledOnce();
+    stopped();
+    await waitFor(() => expect(mockInit).toHaveBeenCalledTimes(2));
   });
 
   it('does not initialize the camera when inactive', () => {

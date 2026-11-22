@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useState } from 'react';
 import type { LiveCount, SessionStatus } from '@barcode-stocktake/shared';
 import { SOCKET_EVENTS } from '@barcode-stocktake/shared';
@@ -51,6 +52,7 @@ export function SessionDashboardPage() {
   }, [socket, refreshCounts]);
 
   const { isSupervisor } = useAuth();
+  const navigate = useNavigate();
   const nextStatus = isSupervisor ? NEXT_STATUS[session.status] : null;
 
   const handleRemoveExpected = async (productId: number) => {
@@ -124,7 +126,13 @@ export function SessionDashboardPage() {
       {isSupervisor && session.status !== 'completed' && (
         <section className="dashboard-import">
           <h2>Cantidades esperadas</h2>
-          <CsvUploadForm sessionId={session.id} onImported={refreshCounts} />
+          <CsvUploadForm
+            sessionId={session.id}
+            onImported={(summary) => {
+              if (summary.errors.length === 0) navigate(`/sessions/${session.id}/report`);
+              else void refreshCounts();
+            }}
+          />
           <ManualEntryForm sessionId={session.id} onAdded={refreshCounts} />
         </section>
       )}

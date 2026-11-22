@@ -135,6 +135,33 @@ describe("Pharmacy's inventory file → count → discrepancy report", () => {
     ]);
   });
 
+  it('imports the pharmacy CSV headings and retains the system quantity and unit cost', async () => {
+    const csv = 'Inventario de prueba\nSKU\tcodigo_barras\tproducto\tcantidad_sistema\tcantidad_contada\tcosto_unitario_usd\n'
+      + 'JR-001\t039079001108\tProducto de prueba\t12\t10\t5.50\n';
+    const response = await request(ctx.app)
+      .post(`/api/sessions/${id}/import-csv`)
+      .set(ctx.auth)
+      .field('requireQuantity', 'true')
+      .attach('file', Buffer.from(csv), 'inventario.csv');
+    expect(response.body.summary).toMatchObject({ expectedQuantitiesWritten: 1, errors: [] });
+    const { report } = (await request(ctx.app).get(`/api/sessions/${id}/variance-report`).set(ctx.auth)).body;
+    expect(report.rows).toEqual([expect.objectContaining({
+      barcode: '039079001108', expectedQty: 12, unitCostCents: 550,
+    })]);
+  });
+
+  it('asks for a quantity column before changing the catalog and applies the selected column', async () => {
+    const csv = Buffer.from('UPC,Producto,Total\n111,Producto de prueba,8\n');
+    const send = () => request(ctx.app).post(`/api/sessions/${id}/import-csv`).set(ctx.auth);
+    const preview = await send().field('requireQuantity', 'true').attach('file', csv, 'prueba.csv');
+    expect(preview.body.summary).toMatchObject({
+      productsCreated: 0, expectedQuantitiesWritten: 0, quantityHeaders: ['UPC', 'Producto', 'Total'],
+    });
+    const applied = await send().field('requireQuantity', 'true').field('quantityColumn', '2')
+      .attach('file', csv, 'prueba.csv');
+    expect(applied.body.summary).toMatchObject({ productsCreated: 1, expectedQuantitiesWritten: 1 });
+  });
+
   it('explains what is missing when the file has no barcode column', async () => {
     const res = await request(ctx.app)
       .post(`/api/sessions/${id}/import-csv`)

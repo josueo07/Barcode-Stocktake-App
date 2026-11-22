@@ -2,6 +2,15 @@
 
 Cada entrada: fecha, decisión y por qué. La más nueva arriba.
 
+- **2026-11-22 — Borrado confirmado en cualquier estado.** Josue autorizó
+  permitir que el supervisor borre borradores, conteos en curso y cerrados.
+  Se confirma con el nombre del conteo y se eliminan sus datos asociados.
+  El catálogo de productos persiste.
+
+- **2026-11-22 — Cantidad esperada explícita al importar.** El archivo de la
+  farmacia puede traer cantidad del sistema y cantidad contada. El importador
+  reconoce la primera como esperada y pide elegir si la columna es ambigua.
+  Abre Reporte al guardar las cantidades sin errores de filas.
 - **2026-11-22 — Un solo supervisor, varios contadores.** Josue lo pidió. El servidor no
   deja crear ni activar un segundo supervisor. Cada persona tiene su perfil y puede cambiar
   su propio PIN; al cambiarlo se cierran sus otras sesiones.

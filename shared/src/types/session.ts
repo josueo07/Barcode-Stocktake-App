@@ -54,6 +54,7 @@ export interface CsvImportSummary {
   productsUpdated: number;
   expectedQuantitiesWritten: number;
   rowsSkipped: number;
+  quantityHeaders?: string[];
   errors: CsvImportRowError[];
 }
 
