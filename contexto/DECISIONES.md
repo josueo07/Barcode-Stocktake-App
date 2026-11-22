@@ -2,6 +2,11 @@
 
 Cada entrada: fecha, decisión y por qué. La más nueva arriba.
 
+- **2026-11-22 — Piloto privado en el Contabo existente.** Se reutiliza Jarvis sin
+  comprar otro VPS ni un dominio. Tailscale Serve mantiene el acceso dentro de la
+  red privada. Docker Compose separa la aplicación y su SQLite del resto del servidor.
+  El piloto usa Node.js 22 LTS y la rama con las funciones de conteo sin conexión.
+  Ver [guía del piloto](PILOTO-CONTABO.md).
 - **2026-11-22 — Claude sube los cambios directamente.** Josue conectó GitHub a Claude y
   la app de Claude está instalada solo en este repositorio. Ya no se usan paquetes
   `.bundle` ni Codex para subir.

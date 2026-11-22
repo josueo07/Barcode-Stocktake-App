@@ -9,6 +9,7 @@ qué está hecho, qué falta y por qué se decidió cada cosa.
 | [ESTADO.md](ESTADO.md) | Qué está construido y qué falta, en orden | Quien haga el cambio, en el mismo PR |
 | [DECISIONES.md](DECISIONES.md) | Decisiones tomadas y su razón | Quien tome una decisión nueva |
 | [COMO-TRABAJAR.md](COMO-TRABAJAR.md) | Cómo correr, probar y subir cambios | Quien cambie el flujo de trabajo |
+| [PILOTO-CONTABO.md](PILOTO-CONTABO.md) | Acceso, operación, respaldos y pruebas del piloto | Quien opere el piloto |
 | [HISTORIAL.md](HISTORIAL.md) | Lista de cambios que entraron a `master` | **Automático** (GitHub Actions) |
 
 ## Reglas

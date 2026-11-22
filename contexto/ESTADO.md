@@ -29,15 +29,20 @@ Base: fork de `ColterPan/Barcode-Stocktake-App` (MIT) en `josueo07/Barcode-Stock
 | Descargar reporte en Excel (hojas Diferencias y Detalle) o CSV | mismo | #4 |
 | Carpeta `contexto/` con actualización automática del historial | `contexto/`, `.github/workflows/` | #4 |
 
+## Piloto activo en Contabo
+
+El piloto privado usa el VPS existente de Jarvis, Node.js 22 en Docker Compose,
+Caddy, HTTPS por Tailscale y copias diarias de SQLite. Se desplegó el commit
+`69e02f8` de `farmacia/archivo-y-reporte`. La guía recoge el acceso,
+la operación, la recuperación y las pruebas pendientes en [PILOTO-CONTABO.md](PILOTO-CONTABO.md).
+
 ## Falta (en orden)
 
-1. **Unir PR #3 y #4** a `master`.
-2. **Servidor en Contabo**: Ubuntu 24.04, Node 20, servicio `systemd`, Caddy con HTTPS
-   (mismo dominio para app y `/api`), firewall, backup diario de la base SQLite, script de
-   deploy. Falta: dominio o subdominio y acceso al VPS.
-3. **Prueba piloto** con 2 iPhones: login, contar sin Wi-Fi, reenviar, cerrar conteo,
-   reporte.
-4. Ajustes que salgan del piloto.
+1. **Prueba con dos iPhones**. Cámara, modo avión, reapertura de la app, sincronización,
+   cierre y reportes. Usar datos ficticios.
+2. **Unir PR #3 y #4** a `master` y resolver los ajustes detectados en el piloto.
+3. **Preparar producción**. Revisar dependencias, definir acceso del equipo y configurar
+   un destino externo para los respaldos.
 
 ## Ideas no aprobadas todavía
 
