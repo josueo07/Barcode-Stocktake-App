@@ -46,6 +46,50 @@ El respaldo usa la API de copia de SQLite y pasa `PRAGMA integrity_check` antes 
 
 Para retirar el piloto, deshabilitar solo su temporizador y su entrada de Tailscale en `:9443`. Detener su proyecto Compose desde su directorio y conservar `data/` y `backups/` si deben poder recuperarse.
 
+## Importación y apertura automática del reporte
+
+Activa el 22 de noviembre de 2026 sobre la base `17e32e9`, con las imágenes
+`inventario-jr-piloto-api:importacion-csv-reporte` e
+`inventario-jr-piloto-web:importacion-csv-reporte`. Reconoce
+`cantidad_sistema` como cantidad esperada y `costo_unitario_usd` como costo.
+Admite coma, punto y coma y tabulación. Cuando hace falta elegir la columna
+de cantidad, la primera solicitud no escribe en el catálogo. Si la importación
+guarda cantidades sin errores de filas, abre el reporte del mismo conteo.
+
+Pasaron 102 pruebas automatizadas. Se verificó la página y la salud de la API
+por HTTPS. La base sigue en el mismo volumen, sin migraciones adicionales.
+Copia verificada previa al cambio: `stocktake-20261122T182316Z.sqlite`.
+El Compose anterior está en `compose.override.anterior.yaml` dentro del
+directorio de código apuntado por el Compose activo.
+El código está en la rama local `codex/importacion-csv-reporte`.
+
+## Reiniciar el escáner
+
+La web activa ofrece «Reiniciar cámara» cuando está esperando una lectura y
+«Escanear de nuevo» después de detectar un código. El segundo botón descarta
+la lectura pendiente sin guardarla. Ambos reabren la cámara después de que
+se libera el flujo anterior.
+
+El piloto sirve la imagen `inventario-jr-piloto-web:reiniciar-escaner`.
+Pasaron 38 pruebas del cliente, incluida la espera al cerrar la cámara antes
+de reiniciar. Se verificaron por HTTPS la nueva web y la API, que sigue
+ejecutándose en su contenedor anterior.
+
+## Borrado confirmado desde Conteos
+
+Activo en la API y web con la etiqueta `borrar-confirmado` sobre la base
+`17e32e9`. Los supervisores pueden borrar borradores, conteos en curso y
+cerrados. La pantalla muestra una confirmación por nombre y advierte que
+se eliminan el reporte, las cantidades esperadas y los escaneos. El
+catálogo se conserva. La API requiere `?confirm=true` para los conteos
+iniciados o cerrados.
+
+Pasaron 104 pruebas automatizadas en entornos desechables. Se verificaron
+la web y la API por HTTPS. Antes del despliegue se verificó la copia SQLite
+`stocktake-20261122T200350Z.sqlite`. No se borraron conteos del piloto
+durante la actualización. La configuración anterior de Compose se guardó
+en el directorio de la versión como `compose.override.anterior.yaml`.
+
 ## Verificaciones y pendientes
 
 - Verificado por HTTPS: interfaz, service worker, API y negociación WebSocket.

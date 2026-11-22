@@ -176,7 +176,7 @@ export function ScanEntryPanel({
       <div className="scan-entry-actions">
         <button type="submit">Guardar</button>
         <button type="button" className="button-secondary" onClick={onCancel}>
-          Cancelar
+          Escanear de nuevo
         </button>
       </div>
     </form>

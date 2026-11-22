@@ -423,22 +423,27 @@ describe('Stocktake API', () => {
       expect(getRes.status).toBe(404);
     });
 
-    it('refuses to delete an active or completed session', async () => {
-      const sessionRes = await request(ctx.app)
-        .post('/api/sessions')
-        .set(ctx.auth)
-        .send({ name: 'Active Session' });
-      const sessionId = sessionRes.body.session.id;
-      await request(ctx.app)
-        .patch(`/api/sessions/${sessionId}`)
-        .set(ctx.auth)
-        .send({ status: 'active' });
+    it.each(['active', 'completed'])('deletes a confirmed %s session and its data', async (status) => {
+      const { body } = await request(ctx.app).post('/api/sessions').set(ctx.auth).send({ name: 'Conteo temporal' });
+      const path = `/api/sessions/${body.session.id}`;
+      const barcode = '4000000000001';
+      await request(ctx.app).post(path + '/expected-quantities').set(ctx.auth)
+        .send({ barcode, expectedQty: 10, sku: 'DELETE-TEST', name: 'Producto del catálogo' })
+        .expect(201);
+      await request(ctx.app).patch(path).set(ctx.auth).send({ status: 'active' }).expect(200);
+      await request(ctx.app).post(path + '/scans').set(ctx.counter.header)
+        .send({ clientScanId: uuidv4(), barcode, scannedAt: new Date().toISOString() })
+        .expect(201);
+      if (status === 'completed') {
+        await request(ctx.app).patch(path).set(ctx.auth).send({ status }).expect(200);
+      }
 
-      const deleteRes = await request(ctx.app).delete(`/api/sessions/${sessionId}`).set(ctx.auth);
-      expect(deleteRes.status).toBe(409);
-
-      const getRes = await request(ctx.app).get(`/api/sessions/${sessionId}`).set(ctx.auth);
-      expect(getRes.status).toBe(200);
+      await request(ctx.app).delete(path).set(ctx.auth).expect(409);
+      await request(ctx.app).delete(path + '?confirm=true').set(ctx.counter.header).expect(403);
+      await request(ctx.app).delete(path + '?confirm=true').set(ctx.auth).expect(204);
+      await request(ctx.app).get(path).set(ctx.auth).expect(404);
+      await request(ctx.app).get(path + '/variance-report').set(ctx.auth).expect(404);
+      await request(ctx.app).get('/api/products/' + barcode).set(ctx.auth).expect(200);
     });
 
     it('returns 404 when deleting a session that does not exist', async () => {

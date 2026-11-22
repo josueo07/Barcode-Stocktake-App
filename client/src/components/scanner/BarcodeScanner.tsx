@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Quagga, { type QuaggaJSCodeReader } from '@ericblade/quagga2';
+import { readQrFromVideo } from './qrCode';
 import { ScanDebouncer } from './scanDebounce';
 
 export interface BarcodeScannerProps {
@@ -8,7 +9,11 @@ export interface BarcodeScannerProps {
   /** Specific camera to use (from CameraDeviceSelect); omit to request the rear-facing camera. */
   deviceId?: string;
   active: boolean;
+  restartCount?: number;
 }
+
+/** How often (ms) a camera frame is checked for a QR code. Quagga only reads 1D barcodes. */
+const QR_SCAN_INTERVAL_MS = 250;
 
 const READERS: QuaggaJSCodeReader[] = [
   'ean_reader',
@@ -22,14 +27,19 @@ interface QuaggaDetectionResult {
   codeResult: { code: string | null };
 }
 
-export function BarcodeScanner({ onDecode, deviceId, active }: BarcodeScannerProps) {
+export function BarcodeScanner({
+  onDecode,
+  deviceId,
+  active,
+  restartCount = 0,
+}: BarcodeScannerProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const cameraStoppedRef = useRef<Promise<void> | null>(null);
   const debouncerRef = useRef(new ScanDebouncer());
   const [error, setError] = useState<string | null>(null);
 
-  const handleDetected = useCallback(
-    (result: QuaggaDetectionResult) => {
-      const code = result.codeResult.code;
+  const acceptCode = useCallback(
+    (code: string | null) => {
       if (code && debouncerRef.current.shouldAccept(code)) {
         onDecode(code);
       }
@@ -37,48 +47,75 @@ export function BarcodeScanner({ onDecode, deviceId, active }: BarcodeScannerPro
     [onDecode],
   );
 
+  const handleDetected = useCallback(
+    (result: QuaggaDetectionResult) => acceptCode(result.codeResult.code),
+    [acceptCode],
+  );
+
   useEffect(() => {
-    if (!active || !viewportRef.current) return undefined;
+    const viewport = viewportRef.current;
+    if (!active || !viewport) return undefined;
 
     const constraints: MediaTrackConstraints = deviceId
       ? { deviceId: { exact: deviceId } }
       : { facingMode: 'environment' };
 
     let cancelled = false;
+    let opened = false;
+    let qrTimer: ReturnType<typeof setInterval> | undefined;
 
-    Quagga.init(
-      {
-        inputStream: {
-          type: 'LiveStream',
-          target: viewportRef.current,
-          constraints,
+    const openCamera = () => {
+      if (cancelled) return;
+      opened = true;
+      Quagga.init(
+        {
+          inputStream: {
+            type: 'LiveStream',
+            target: viewport,
+            constraints,
+          },
+          decoder: { readers: READERS },
+          locate: true,
         },
-        decoder: { readers: READERS },
-        locate: true,
-      },
-      (err: unknown) => {
-        if (cancelled) return;
-        if (err) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : 'No se pudo abrir la cámara. Revisa que Safari tenga permiso de cámara y que ninguna otra app la esté usando.',
-          );
-          return;
-        }
-        setError(null);
-        Quagga.start();
-      },
-    );
+        (err: unknown) => {
+          if (cancelled) return;
+          if (err) {
+            setError(
+              err instanceof Error
+                ? err.message
+                : 'No se pudo abrir la cámara. Revisa que Safari tenga permiso de cámara y que ninguna otra app la esté usando.',
+            );
+            return;
+          }
+          setError(null);
+          Quagga.start();
+          const canvas = document.createElement('canvas');
+          qrTimer = setInterval(() => {
+            const video = viewport.querySelector('video');
+            if (!video) return;
+            try {
+              acceptCode(readQrFromVideo(video, canvas));
+            } catch {
+              // A frame that can't be read is skipped; the next one is tried.
+            }
+          }, QR_SCAN_INTERVAL_MS);
+        },
+      );
 
-    Quagga.onDetected(handleDetected);
+      Quagga.onDetected(handleDetected);
+    };
+
+    if (cameraStoppedRef.current) void cameraStoppedRef.current.then(openCamera);
+    else openCamera();
 
     return () => {
       cancelled = true;
+      if (qrTimer) clearInterval(qrTimer);
+      if (!opened) return;
       Quagga.offDetected(handleDetected);
-      Quagga.stop();
+      cameraStoppedRef.current = Promise.resolve(Quagga.stop()).catch(() => undefined);
     };
-  }, [active, deviceId, handleDetected]);
+  }, [active, deviceId, handleDetected, acceptCode, restartCount]);
 
   return (
     <div className="barcode-scanner">

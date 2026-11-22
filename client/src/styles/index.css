@@ -562,14 +562,21 @@ input[type='checkbox'] {
 }
 
 .session-list li {
-  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+  padding-inline-end: 8px;
 }
 
 .session-list a {
   display: flex;
+  flex: 1 1 10rem;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+  min-width: 0;
   min-height: 56px;
   padding: 10px 16px;
   color: var(--label);
@@ -580,14 +587,14 @@ input[type='checkbox'] {
 }
 
 .session-list-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-weight: 500;
 }
 
 .session-delete-button {
-  position: absolute;
-  right: 110px;
-  top: 50%;
-  transform: translateY(-50%);
+  min-width: 44px;
+  margin-inline-start: auto;
 }
 
 .session-header {

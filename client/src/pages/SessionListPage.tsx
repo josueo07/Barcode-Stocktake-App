@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent, type MouseEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { StocktakeSession } from '@barcode-stocktake/shared';
 import { createSession, deleteSession, listSessions } from '../api/sessions';
@@ -12,6 +12,7 @@ export function SessionListPage() {
   const [error, setError] = useState<string | null>(null);
   const [newSessionName, setNewSessionName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const navigate = useNavigate();
   const { isSupervisor } = useAuth();
 
@@ -28,14 +29,18 @@ export function SessionListPage() {
     refresh();
   }, [refresh]);
 
-  const handleDelete = async (e: MouseEvent, sessionId: number) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDelete = async (session: StocktakeSession) => {
+    if (deletingId !== null) return;
+    const message = `¿Borrar «${session.name}»? Se eliminarán permanentemente los escaneos, las cantidades esperadas y el reporte de este conteo.`;
+    if (!window.confirm(message)) return;
+    setDeletingId(session.id);
     try {
-      await deleteSession(sessionId);
+      await deleteSession(session.id);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo borrar el conteo');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -86,14 +91,16 @@ export function SessionListPage() {
                 <span className="session-list-name">{session.name}</span>
                 <SessionStatusBadge status={session.status} />
               </Link>
-              {isSupervisor && session.status === 'draft' && (
+              {isSupervisor && (
                 <button
                   type="button"
                   className="link-button session-delete-button"
-                  title="Borrar este borrador"
-                  onClick={(e) => handleDelete(e, session.id)}
+                  title="Borrar este conteo"
+                  disabled={deletingId !== null}
+                  aria-label={`Borrar conteo ${session.name}`}
+                  onClick={() => handleDelete(session)}
                 >
-                  Borrar
+                  {deletingId === session.id ? 'Borrando…' : 'Borrar'}
                 </button>
               )}
             </li>
