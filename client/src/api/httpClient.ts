@@ -1,3 +1,4 @@
+import { AUTH_EXPIRED_EVENT, clearAuth, getAuthToken } from '../auth/authStore';
 import { config } from '../config';
 
 export class ApiError extends Error {
@@ -14,14 +15,22 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const isFormData = options.body instanceof FormData;
+  const token = getAuthToken();
 
   const res = await fetch(`${config.apiBaseUrl}${path}`, {
     ...options,
     headers: {
       ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
+
+  if (res.status === 401 && token) {
+    // The saved login was revoked or expired: drop it so the app shows the login screen.
+    clearAuth();
+    window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+  }
 
   if (!res.ok) {
     let message = `Request failed with status ${res.status}`;

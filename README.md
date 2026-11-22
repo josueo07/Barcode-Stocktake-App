@@ -92,6 +92,23 @@ npm run db:migrate              # applies them to server/data/stocktake.sqlite
 npm run db:seed                 # seeds a demo session from sample-data/sample-products.csv
 ```
 
+### Create the first supervisor
+
+Every API call and live-update socket requires a signed-in user. Create the first
+supervisor from the command line (you'll be prompted for a PIN of at least 6 characters):
+
+```bash
+npm run user:create -w server -- --username josue --name "Josue" --role supervisor
+```
+
+After that, supervisors add counters from the **Personas** page in the app. Counters can
+scan and see live counts; only supervisors can create, close or delete sessions, import
+expected quantities, see the variance report and manage people. Each scan records who
+submitted it.
+
+On a production build use `npm run db:migrate:prod -w server` and
+`npm run user:create:prod -w server -- ...` instead.
+
 ### Run it
 
 ```bash

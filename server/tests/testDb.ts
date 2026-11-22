@@ -6,6 +6,26 @@ import { createDatabase, type DatabaseHandle } from '../src/db/client';
  * schema.ts if columns/constraints change.
  */
 const SCHEMA_SQL = `
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  pin_hash TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX users_username_idx ON users (username);
+
+CREATE TABLE auth_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  token_hash TEXT NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX auth_tokens_token_hash_idx ON auth_tokens (token_hash);
+
 CREATE TABLE products (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   sku TEXT NOT NULL,
@@ -46,6 +66,7 @@ CREATE TABLE scan_events (
   barcode TEXT NOT NULL,
   client_scan_id TEXT NOT NULL,
   device_label TEXT,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   quantity INTEGER NOT NULL DEFAULT 1,
   scanned_at TEXT NOT NULL,
   synced_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,

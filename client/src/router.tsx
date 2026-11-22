@@ -4,6 +4,7 @@ import { LoadingIndicator } from './components/common/LoadingIndicator';
 import { SessionLayout } from './context/SessionLayout';
 import { SessionDashboardPage } from './pages/SessionDashboardPage';
 import { SessionListPage } from './pages/SessionListPage';
+import { UsersPage } from './pages/UsersPage';
 import { VarianceReportPage } from './pages/VarianceReportPage';
 
 // Lazy-loaded: @ericblade/quagga2 is the bulk of the app's JS weight and is only needed
@@ -12,6 +13,7 @@ const ScanPage = lazy(() => import('./pages/ScanPage').then((m) => ({ default: m
 
 export const router = createBrowserRouter([
   { path: '/', element: <SessionListPage /> },
+  { path: '/users', element: <UsersPage /> },
   {
     path: '/sessions/:id',
     element: <SessionLayout />,

@@ -3,6 +3,7 @@ import multer from 'multer';
 import { z } from 'zod';
 import type { Server as SocketIOServer } from 'socket.io';
 import type { AppDatabase } from '../db/client';
+import { supervisorOnly } from '../middleware/auth';
 import { validateBody } from '../middleware/validateRequest';
 import {
   addManualExpectedQuantity,
@@ -40,19 +41,24 @@ export function createSessionsRouter(db: AppDatabase, io?: SocketIOServer): Rout
   const router = Router();
 
   router.get('/', listSessions(db));
-  router.post('/', validateBody(createSessionSchema), createSession(db));
+  router.post('/', supervisorOnly, validateBody(createSessionSchema), createSession(db));
   router.get('/:id', getSession(db));
-  router.patch('/:id', validateBody(updateSessionSchema), updateSession(db, io));
-  router.delete('/:id', deleteSession(db));
+  router.patch('/:id', supervisorOnly, validateBody(updateSessionSchema), updateSession(db, io));
+  router.delete('/:id', supervisorOnly, deleteSession(db));
 
-  router.post('/:id/import-csv', upload.single('file'), importSessionCsv(db, io));
+  router.post('/:id/import-csv', supervisorOnly, upload.single('file'), importSessionCsv(db, io));
   router.get('/:id/expected-quantities', listExpectedQuantities(db));
   router.post(
     '/:id/expected-quantities',
+    supervisorOnly,
     validateBody(manualExpectedQtySchema),
     addManualExpectedQuantity(db, io),
   );
-  router.delete('/:id/expected-quantities/:productId', deleteExpectedQuantity(db, io));
+  router.delete(
+    '/:id/expected-quantities/:productId',
+    supervisorOnly,
+    deleteExpectedQuantity(db, io),
+  );
 
   return router;
 }

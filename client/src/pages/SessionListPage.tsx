@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent, type MouseEvent } fro
 import { Link, useNavigate } from 'react-router-dom';
 import type { StocktakeSession } from '@barcode-stocktake/shared';
 import { createSession, deleteSession, listSessions } from '../api/sessions';
+import { useAuth } from '../auth/AuthContext';
 import { ErrorBanner } from '../components/common/ErrorBanner';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { SessionStatusBadge } from '../components/dashboard/SessionStatusBadge';
@@ -12,6 +13,7 @@ export function SessionListPage() {
   const [newSessionName, setNewSessionName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
+  const { isSupervisor } = useAuth();
 
   const refresh = useCallback(async () => {
     try {
@@ -57,16 +59,18 @@ export function SessionListPage() {
     <div className="session-list-page">
       <h1>Stocktake Sessions</h1>
 
-      <form className="new-session-form" onSubmit={handleCreate}>
-        <input
-          placeholder="e.g. Warehouse A — July 2026"
-          value={newSessionName}
-          onChange={(e) => setNewSessionName(e.target.value)}
-        />
-        <button type="submit" disabled={isCreating || !newSessionName.trim()}>
-          {isCreating ? 'Creating…' : 'New session'}
-        </button>
-      </form>
+      {isSupervisor && (
+        <form className="new-session-form" onSubmit={handleCreate}>
+          <input
+            placeholder="e.g. Warehouse A — July 2026"
+            value={newSessionName}
+            onChange={(e) => setNewSessionName(e.target.value)}
+          />
+          <button type="submit" disabled={isCreating || !newSessionName.trim()}>
+            {isCreating ? 'Creating…' : 'New session'}
+          </button>
+        </form>
+      )}
 
       {error && <ErrorBanner message={error} />}
       {!sessions && !error && <LoadingIndicator />}
@@ -83,7 +87,7 @@ export function SessionListPage() {
                 <span className="session-list-name">{session.name}</span>
                 <SessionStatusBadge status={session.status} />
               </Link>
-              {session.status === 'draft' && (
+              {isSupervisor && session.status === 'draft' && (
                 <button
                   type="button"
                   className="link-button session-delete-button"

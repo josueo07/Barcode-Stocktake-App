@@ -20,12 +20,16 @@ export function recordScan(
   db: AppDatabase,
   sessionId: number,
   submission: ScanSubmission,
+  userId: number | null = null,
 ): RecordScanResult {
   const existing = db
     .select()
     .from(scanEvents)
     .where(
-      and(eq(scanEvents.sessionId, sessionId), eq(scanEvents.clientScanId, submission.clientScanId)),
+      and(
+        eq(scanEvents.sessionId, sessionId),
+        eq(scanEvents.clientScanId, submission.clientScanId),
+      ),
     )
     .get();
 
@@ -48,6 +52,7 @@ export function recordScan(
       barcode: submission.barcode,
       clientScanId: submission.clientScanId,
       deviceLabel: submission.deviceLabel ?? null,
+      userId,
       quantity: submission.quantity ?? 1,
       scannedAt: submission.scannedAt,
     })
@@ -66,13 +71,14 @@ export function recordScanBatch(
   db: AppDatabase,
   sessionId: number,
   submissions: ScanSubmission[],
+  userId: number | null = null,
 ): { results: BatchScanItemResult[]; accepted: RecordScanResult[] } {
   const results: BatchScanItemResult[] = [];
   const accepted: RecordScanResult[] = [];
 
   for (const submission of submissions) {
     try {
-      const result = recordScan(db, sessionId, submission);
+      const result = recordScan(db, sessionId, submission, userId);
       results.push({ clientScanId: submission.clientScanId, status: result.status });
       if (result.status === 'accepted') {
         accepted.push(result);

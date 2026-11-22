@@ -3,6 +3,7 @@ import type { LiveCount, SessionStatus } from '@barcode-stocktake/shared';
 import { SOCKET_EVENTS } from '@barcode-stocktake/shared';
 import { getCounts } from '../api/scans';
 import { deleteExpectedQuantity, updateSession } from '../api/sessions';
+import { useAuth } from '../auth/AuthContext';
 import { ErrorBanner } from '../components/common/ErrorBanner';
 import { LiveCountTable } from '../components/dashboard/LiveCountTable';
 import { CsvUploadForm } from '../components/import/CsvUploadForm';
@@ -48,7 +49,8 @@ export function SessionDashboardPage() {
     };
   }, [socket, refreshCounts]);
 
-  const nextStatus = NEXT_STATUS[session.status];
+  const { isSupervisor } = useAuth();
+  const nextStatus = isSupervisor ? NEXT_STATUS[session.status] : null;
 
   const handleRemoveExpected = async (productId: number) => {
     try {
@@ -82,10 +84,12 @@ export function SessionDashboardPage() {
             {isChangingStatus ? 'Updating…' : NEXT_STATUS_LABEL[session.status]}
           </button>
         )}
-        {session.status === 'completed' && <p>This session is complete. View the variance report.</p>}
+        {session.status === 'completed' && (
+          <p>This session is complete. View the variance report.</p>
+        )}
       </section>
 
-      {session.status !== 'completed' && (
+      {isSupervisor && session.status !== 'completed' && (
         <section className="dashboard-import">
           <h2>Expected quantities</h2>
           <CsvUploadForm sessionId={session.id} onImported={refreshCounts} />
@@ -97,7 +101,9 @@ export function SessionDashboardPage() {
         <h2>Live counts</h2>
         <LiveCountTable
           counts={counts}
-          onRemoveExpected={session.status !== 'completed' ? handleRemoveExpected : undefined}
+          onRemoveExpected={
+            isSupervisor && session.status !== 'completed' ? handleRemoveExpected : undefined
+          }
         />
       </section>
     </div>

@@ -22,7 +22,11 @@ function getSessionOrThrow(db: AppDatabase, id: number) {
   return session;
 }
 
-function emitCountUpdate(io: SocketIOServer | undefined, sessionId: number, result: RecordScanResult) {
+function emitCountUpdate(
+  io: SocketIOServer | undefined,
+  sessionId: number,
+  result: RecordScanResult,
+) {
   io?.to(`session:${sessionId}`).emit(SOCKET_EVENTS.COUNT_UPDATE, {
     sessionId,
     productId: result.productId,
@@ -43,7 +47,7 @@ export function submitScan(db: AppDatabase, io?: SocketIOServer): RequestHandler
       getSessionOrThrow(db, id);
 
       const submission = req.body as ScanSubmission;
-      const result = recordScan(db, id, submission);
+      const result = recordScan(db, id, submission, req.user?.id ?? null);
       if (result.status === 'accepted') {
         emitCountUpdate(io, id, result);
       }
@@ -66,7 +70,7 @@ export function submitScanBatch(db: AppDatabase, io?: SocketIOServer): RequestHa
         return;
       }
 
-      const { results, accepted } = recordScanBatch(db, id, scans);
+      const { results, accepted } = recordScanBatch(db, id, scans, req.user?.id ?? null);
       accepted.forEach((result) => emitCountUpdate(io, id, result));
       res.json({ results });
     } catch (err) {
@@ -159,7 +163,10 @@ export function exportVarianceReport(db: AppDatabase): RequestHandler {
       const report = buildVarianceReport(db, id);
       const csv = toCsv(report);
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="variance-report-session-${id}.csv"`);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="variance-report-session-${id}.csv"`,
+      );
       res.send(csv);
     } catch (err) {
       next(err);

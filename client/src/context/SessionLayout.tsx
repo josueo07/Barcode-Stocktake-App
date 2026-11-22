@@ -6,6 +6,7 @@ import { getSession } from '../api/sessions';
 import { ErrorBanner } from '../components/common/ErrorBanner';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { SessionStatusBadge } from '../components/dashboard/SessionStatusBadge';
+import { useAuth } from '../auth/AuthContext';
 import { useSocket } from '../hooks/useSocket';
 import { SessionContext } from './useSessionContext';
 
@@ -14,6 +15,7 @@ export function SessionLayout() {
   const sessionId = Number(id);
   const [session, setSession] = useState<StocktakeSession | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { isSupervisor } = useAuth();
   const socket = useSocket(Number.isNaN(sessionId) ? null : sessionId);
 
   const refreshSession = useCallback(async () => {
@@ -55,7 +57,7 @@ export function SessionLayout() {
               Dashboard
             </NavLink>
             <NavLink to="scan">Scan</NavLink>
-            <NavLink to="report">Report</NavLink>
+            {isSupervisor && <NavLink to="report">Report</NavLink>}
           </nav>
         </header>
         <main className="session-main">
