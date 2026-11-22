@@ -45,7 +45,15 @@ const HEADER_ALIASES: Record<Field, string[]> = {
     'onhand',
     'stock',
   ],
-  cost: ['cost', 'costo', 'unitcost', 'costounitario', 'costounidad', 'costoporunidad', 'costounitariousd'],
+  cost: [
+    'cost',
+    'costo',
+    'unitcost',
+    'costounitario',
+    'costounidad',
+    'costoporunidad',
+    'costounitariousd',
+  ],
   sku: ['sku', 'itemnumber', 'itemno', 'numerodearticulo', 'codigointerno'],
   category: ['category', 'categoria', 'departamento', 'department'],
 };
@@ -103,7 +111,11 @@ function parseCsvRows(fileBuffer: Buffer): string[][] {
   const options = { skip_empty_lines: true, trim: true, relax_column_count: true };
   const delimiter = [',', ';', '\t'].find((candidate) => {
     try {
-      const preview = parse(text, { ...options, delimiter: candidate, to: MAX_HEADER_SEARCH_ROWS }) as string[][];
+      const preview = parse(text, {
+        ...options,
+        delimiter: candidate,
+        to: MAX_HEADER_SEARCH_ROWS,
+      }) as string[][];
       return preview.some((row) => {
         const header = mapHeader(row);
         return header.barcode !== undefined && header.name !== undefined;
@@ -113,9 +125,8 @@ function parseCsvRows(fileBuffer: Buffer): string[][] {
     }
   });
   const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
-  const fallback = (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0)
-    ? ';'
-    : ',';
+  const fallback =
+    (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0) ? ';' : ',';
   return parse(text, { ...options, delimiter: delimiter ?? fallback }) as string[][];
 }
 
@@ -241,15 +252,23 @@ function importRows(
     return summary;
   }
   const header = rows[headerIndex] ?? [];
-  const quantityCandidates = header.filter((cell) => HEADER_ALIASES.qty.includes(normalizeHeader(cell)));
+  const quantityCandidates = header.filter((cell) =>
+    HEADER_ALIASES.qty.includes(normalizeHeader(cell)),
+  );
   if (mapping.quantityColumn !== undefined) {
     const index = mapping.quantityColumn;
     if (!header[index]?.trim() || index === columns.barcode || index === columns.name) {
-      summary.errors.push({ row: headerIndex + 1, message: 'Selecciona una columna válida de cantidad esperada.' });
+      summary.errors.push({
+        row: headerIndex + 1,
+        message: 'Selecciona una columna válida de cantidad esperada.',
+      });
       return summary;
     }
     columns.qty = index;
-  } else if (mapping.requireQuantity && (columns.qty === undefined || quantityCandidates.length > 1)) {
+  } else if (
+    mapping.requireQuantity &&
+    (columns.qty === undefined || quantityCandidates.length > 1)
+  ) {
     summary.quantityHeaders = header;
     return summary;
   }
@@ -266,7 +285,9 @@ function importRows(
   return db.transaction(() => {
     rows.slice(headerIndex + 1).forEach((row, offset) => {
       const rowNumber = headerIndex + offset + 2; // 1-based, after the header row
-      const barcode = get(row, 'barcode');
+      // "8 01108 11003 1" or "8-01108-11003-1" (as printed on the box) → "801108110031".
+      const rawBarcode = get(row, 'barcode');
+      const barcode = /^[\d\s-]+$/.test(rawBarcode) ? rawBarcode.replace(/[\s-]/g, '') : rawBarcode;
       const name = get(row, 'name');
       if (row.every((cell) => cell.trim() === '')) return;
 
@@ -274,6 +295,13 @@ function importRows(
         summary.rowsSkipped += 1;
         summary.errors.push({ row: rowNumber, message });
       };
+
+      if (/^\d+(\.\d+)?e\+\d+$/i.test(barcode)) {
+        skip(
+          `El código "${barcode}" quedó en notación científica (Excel lo convirtió). Guarda la columna de código como texto y vuelve a exportar.`,
+        );
+        return;
+      }
 
       if (!barcode || !name) {
         skip('Falta el código o el nombre.');

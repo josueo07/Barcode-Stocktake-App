@@ -109,7 +109,9 @@ export function ScanPage() {
 
   const handleTypedSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const code = typedBarcode.trim();
+    // Accept the code as printed on the box: "8 01108 11003 1" → "801108110031".
+    const typed = typedBarcode.trim();
+    const code = /^[\d\s-]+$/.test(typed) ? typed.replace(/[\s-]/g, '') : typed;
     if (!code) return;
     setTypedBarcode('');
     handleDecode(code);

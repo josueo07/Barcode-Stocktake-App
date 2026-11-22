@@ -2,8 +2,8 @@ import { render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BarcodeScanner } from '../../src/components/scanner/BarcodeScanner';
 
-const { mockInit, mockStart, mockStop, mockOnDetected, mockOffDetected, detectedHandlers } = vi.hoisted(
-  () => {
+const { mockInit, mockStart, mockStop, mockOnDetected, mockOffDetected, detectedHandlers } =
+  vi.hoisted(() => {
     const handlers: Array<(result: unknown) => void> = [];
     return {
       detectedHandlers: handlers,
@@ -13,8 +13,7 @@ const { mockInit, mockStart, mockStop, mockOnDetected, mockOffDetected, detected
       mockOnDetected: vi.fn((handler: (result: unknown) => void) => handlers.push(handler)),
       mockOffDetected: vi.fn(),
     };
-  },
-);
+  });
 
 vi.mock('@ericblade/quagga2', () => ({
   default: {
@@ -45,6 +44,16 @@ describe('BarcodeScanner', () => {
     expect(onDecode).toHaveBeenCalledWith('1234567890123');
   });
 
+  it('reports a UPC-A label with its 12 printed digits, not the EAN-13 form', async () => {
+    const onDecode = vi.fn();
+    render(<BarcodeScanner active onDecode={onDecode} />);
+    await waitFor(() => expect(mockStart).toHaveBeenCalled());
+
+    detectedHandlers[0]?.({ codeResult: { code: '0801108110031' } });
+
+    expect(onDecode).toHaveBeenCalledWith('801108110031');
+  });
+
   it('debounces repeat detections of the same barcode', async () => {
     const onDecode = vi.fn();
     render(<BarcodeScanner active onDecode={onDecode} />);
@@ -58,7 +67,11 @@ describe('BarcodeScanner', () => {
 
   it('waits for the previous camera to stop before restarting', async () => {
     let stopped!: () => void;
-    mockStop.mockReturnValueOnce(new Promise<void>((resolve) => { stopped = resolve; }));
+    mockStop.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        stopped = resolve;
+      }),
+    );
     const onDecode = vi.fn();
     const { rerender } = render(<BarcodeScanner active onDecode={onDecode} />);
     rerender(<BarcodeScanner active onDecode={onDecode} restartCount={1} />);
