@@ -29,8 +29,8 @@ describe('CsvUploadForm', () => {
     const file = new File(['sku,barcode,name,expected_qty\nSKU1,111,Widget,5\n'], 'products.csv', {
       type: 'text/csv',
     });
-    await user.upload(screen.getByLabelText(/archivo csv de esperados/i), file);
-    await user.click(screen.getByRole('button', { name: /importar csv/i }));
+    await user.upload(screen.getByLabelText(/archivo de inventario/i), file);
+    await user.click(screen.getByRole('button', { name: /importar archivo/i }));
 
     await waitFor(() => expect(screen.getByText(/productos nuevos: 2, actualizados: 0/i)).toBeInTheDocument());
     expect(onImported).toHaveBeenCalled();
@@ -49,8 +49,8 @@ describe('CsvUploadForm', () => {
     const file = new File(['sku,barcode,name,expected_qty\nSKU1,111,Widget,5\n'], 'products.csv', {
       type: 'text/csv',
     });
-    await user.upload(screen.getByLabelText(/archivo csv de esperados/i), file);
-    await user.click(screen.getByRole('button', { name: /importar csv/i }));
+    await user.upload(screen.getByLabelText(/archivo de inventario/i), file);
+    await user.click(screen.getByRole('button', { name: /importar archivo/i }));
 
     await waitFor(() => expect(screen.getByText(/session 1 not found/i)).toBeInTheDocument());
   });

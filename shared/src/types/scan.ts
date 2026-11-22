@@ -9,6 +9,9 @@ export interface ScanEvent {
   /** Received after the session closed; excluded from counts until a supervisor accepts it. */
   late: boolean;
   userId: number | null;
+  lot: string | null;
+  expiryDate: string | null;
+  unitCostCents: number | null;
   scannedAt: string;
   syncedAt: string;
   createdAt: string;
@@ -21,6 +24,10 @@ export interface ScanSubmission {
   quantity?: number;
   scannedAt: string;
   deviceLabel?: string;
+  /** Optional pharmacy details, typed by the counter after the scan. */
+  lot?: string;
+  expiryDate?: string;
+  unitCostCents?: number;
 }
 
 export interface BatchScanRequest {
@@ -49,5 +56,7 @@ export interface LiveCount {
   sku: string | null;
   name: string | null;
   expectedQty: number | null;
+  /** Unit cost from the imported file (cents), when it had one. */
+  expectedUnitCostCents: number | null;
   countedQty: number;
 }

@@ -240,14 +240,11 @@ describe('Stocktake API', () => {
       .attach('file', Buffer.from(csv), 'products.csv');
 
     for (let i = 0; i < 7; i += 1) {
-      await request(ctx.app)
-        .post(`/api/sessions/${sessionId}/scans`)
-        .set(ctx.auth)
-        .send({
-          clientScanId: uuidv4(),
-          barcode: '1111111111111',
-          scannedAt: new Date().toISOString(),
-        });
+      await request(ctx.app).post(`/api/sessions/${sessionId}/scans`).set(ctx.auth).send({
+        clientScanId: uuidv4(),
+        barcode: '1111111111111',
+        scannedAt: new Date().toISOString(),
+      });
     }
 
     const reportRes = await request(ctx.app)
@@ -261,7 +258,14 @@ describe('Stocktake API', () => {
         variance: -3,
       }),
     ]);
-    expect(reportRes.body.report.totals).toEqual({ expectedQty: 10, countedQty: 7, variance: -3 });
+    expect(reportRes.body.report.totals).toEqual({
+      expectedQty: 10,
+      countedQty: 7,
+      variance: -3,
+      expectedValueCents: null,
+      countedValueCents: null,
+      valueVarianceCents: null,
+    });
   });
 
   it('exports the variance report as CSV', async () => {
@@ -276,7 +280,9 @@ describe('Stocktake API', () => {
       .set(ctx.auth);
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/text\/csv/);
-    expect(res.text.split('\n')[0]).toBe('SKU,Barcode,Name,Expected Qty,Counted Qty,Variance');
+    expect(res.text.split(/\r?\n/)[0]).toBe(
+      '\uFEFFSKU,Código,Producto,Esperado,Contado,Diferencia',
+    );
   });
 
   it('completing a session freezes a variance report snapshot', async () => {
@@ -389,14 +395,11 @@ describe('Stocktake API', () => {
         .set(ctx.auth)
         .send({ sku: 'CRUD-SCANNED', barcode: '3000000000002', name: 'Scanned Product' });
 
-      await request(ctx.app)
-        .post(`/api/sessions/${sessionId}/scans`)
-        .set(ctx.auth)
-        .send({
-          clientScanId: uuidv4(),
-          barcode: '3000000000002',
-          scannedAt: new Date().toISOString(),
-        });
+      await request(ctx.app).post(`/api/sessions/${sessionId}/scans`).set(ctx.auth).send({
+        clientScanId: uuidv4(),
+        barcode: '3000000000002',
+        scannedAt: new Date().toISOString(),
+      });
 
       const deleteRes = await request(ctx.app)
         .delete(`/api/products/${productRes.body.product.id}`)

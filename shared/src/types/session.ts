@@ -5,6 +5,8 @@ export interface StocktakeSession {
   name: string;
   status: SessionStatus;
   notes: string | null;
+  /** Counters may type a unit cost per scan; the report shows counted value. */
+  costEnabled: boolean;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
@@ -13,12 +15,14 @@ export interface StocktakeSession {
 export interface CreateSessionInput {
   name: string;
   notes?: string | null;
+  costEnabled?: boolean;
 }
 
 export interface UpdateSessionInput {
   name?: string;
   notes?: string | null;
   status?: SessionStatus;
+  costEnabled?: boolean;
 }
 
 export type ExpectedQuantitySource = 'csv_import' | 'manual';

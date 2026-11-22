@@ -50,6 +50,7 @@ export function useOfflineSync(sessionId: number | null): OfflineSyncState {
             status: _status,
             errorMessage: _err,
             queuedAt: _q,
+            userId: _userId,
             ...submission
           }) => submission,
         ),

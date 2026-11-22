@@ -67,6 +67,8 @@ export const stocktakeSessions = sqliteTable('stocktake_sessions', {
     .notNull()
     .default('draft'),
   notes: text('notes'),
+  /** When on, counters can type a unit cost for each scan and the report shows counted value. */
+  costEnabled: integer('cost_enabled', { mode: 'boolean' }).notNull().default(false),
   startedAt: text('started_at'),
   completedAt: text('completed_at'),
   createdAt: text('created_at')
@@ -85,6 +87,8 @@ export const sessionExpectedQuantities = sqliteTable(
       .notNull()
       .references(() => products.id, { onDelete: 'cascade' }),
     expectedQty: integer('expected_qty').notNull(),
+    /** Unit cost from the pharmacy's file (cents), used to value expected and counted stock. */
+    unitCostCents: integer('unit_cost_cents'),
     source: text('source', { enum: ['csv_import', 'manual'] }).notNull(),
     createdAt: text('created_at')
       .notNull()
@@ -117,6 +121,12 @@ export const scanEvents = sqliteTable(
      * supervisor to review but excluded from counts and the variance report until accepted.
      */
     late: integer('late', { mode: 'boolean' }).notNull().default(false),
+    /** Optional pharmacy details captured at scan time. */
+    lot: text('lot'),
+    /** Expiration date as YYYY-MM-DD (or YYYY-MM when only month/year is printed). */
+    expiryDate: text('expiry_date'),
+    /** Unit cost in cents, only when the session has cost enabled. */
+    unitCostCents: integer('unit_cost_cents'),
     scannedAt: text('scanned_at').notNull(),
     syncedAt: text('synced_at')
       .notNull()

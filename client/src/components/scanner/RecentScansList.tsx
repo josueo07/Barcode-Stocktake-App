@@ -18,6 +18,9 @@ export function RecentScansList({ scans }: { scans: QueuedScan[] }) {
       {scans.map((scan) => (
         <li key={scan.id} className={`recent-scan recent-scan--${scan.status}`}>
           <span className="recent-scan-barcode">{scan.barcode}</span>
+          <span className="recent-scan-qty">×{scan.quantity ?? 1}</span>
+          {scan.lot && <span className="recent-scan-lot">Lote {scan.lot}</span>}
+          {scan.expiryDate && <span className="recent-scan-lot">Exp. {scan.expiryDate}</span>}
           <span className="recent-scan-status">{STATUS_LABELS[scan.status]}</span>
           {scan.status === 'failed' && scan.errorMessage && (
             <span className="recent-scan-error">{scan.errorMessage}</span>

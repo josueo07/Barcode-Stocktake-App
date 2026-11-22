@@ -18,6 +18,7 @@ import {
   buildVarianceReport,
   persistVarianceReportSnapshot,
   toCsv,
+  toXlsx,
 } from '../services/varianceReport.service';
 
 function getSessionOrThrow(db: AppDatabase, id: number) {
@@ -174,12 +175,33 @@ export function exportVarianceReport(db: AppDatabase): RequestHandler {
 
       const report = buildVarianceReport(db, id);
       const csv = toCsv(report);
-      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="variance-report-session-${id}.csv"`,
+        `attachment; filename="reporte-diferencias-conteo-${id}.csv"`,
       );
       res.send(csv);
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
+export function exportVarianceReportXlsx(db: AppDatabase): RequestHandler {
+  return async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const session = getSessionOrThrow(db, id);
+      const buffer = await toXlsx(db, buildVarianceReport(db, id), session.name);
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="reporte-inventario-conteo-${id}.xlsx"`,
+      );
+      res.send(buffer);
     } catch (err) {
       next(err);
     }

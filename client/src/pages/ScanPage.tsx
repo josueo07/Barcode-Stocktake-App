@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { CountUpdatePayload } from '@barcode-stocktake/shared';
 import { SOCKET_EVENTS } from '@barcode-stocktake/shared';
 import { BarcodeScanner } from '../components/scanner/BarcodeScanner';
 import { CameraDeviceSelect } from '../components/scanner/CameraDeviceSelect';
 import { RecentScansList } from '../components/scanner/RecentScansList';
+import { ScanEntryPanel, type ScanEntryDetails } from '../components/scanner/ScanEntryPanel';
 import { SyncStatusBanner } from '../components/scanner/SyncStatusBanner';
 import { useSessionContext } from '../context/useSessionContext';
 import { useAuth } from '../auth/AuthContext';
@@ -42,23 +43,46 @@ export function ScanPage() {
     };
   }, [socket, refreshRecent]);
 
-  const handleDecode = useCallback(
-    async (barcode: string) => {
+  // The scan waits here until the counter confirms quantity (and optional details).
+  const [pending, setPending] = useState<{ barcode: string; scannedAt: string } | null>(null);
+  const [typedBarcode, setTypedBarcode] = useState('');
+
+  const handleDecode = useCallback((barcode: string) => {
+    // Ignore further decodes while a scan is waiting for confirmation.
+    setPending((current) => current ?? { barcode, scannedAt: new Date().toISOString() });
+  }, []);
+
+  const handleSave = useCallback(
+    async (details: ScanEntryDetails) => {
+      if (!pending) return;
       await enqueueScan(
         session.id,
         {
           clientScanId: uuidv4(),
-          barcode,
-          scannedAt: new Date().toISOString(),
+          barcode: pending.barcode,
+          scannedAt: pending.scannedAt,
           deviceLabel: getDeviceLabel(),
+          quantity: details.quantity,
+          lot: details.lot,
+          expiryDate: details.expiryDate,
+          unitCostCents: details.unitCostCents,
         },
         user?.id,
       );
+      setPending(null);
       await refreshRecent();
       syncState.flushNow();
     },
-    [session.id, user?.id, refreshRecent, syncState],
+    [pending, session.id, user?.id, refreshRecent, syncState],
   );
+
+  const handleTypedSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const code = typedBarcode.trim();
+    if (!code) return;
+    setTypedBarcode('');
+    handleDecode(code);
+  };
 
   if (session.status !== 'active') {
     return (
@@ -73,6 +97,26 @@ export function ScanPage() {
       <SyncStatusBanner {...syncState} />
       <CameraDeviceSelect value={deviceId} onChange={setDeviceId} />
       <BarcodeScanner active onDecode={handleDecode} deviceId={deviceId} />
+      {pending ? (
+        <ScanEntryPanel
+          barcode={pending.barcode}
+          costEnabled={session.costEnabled}
+          onSave={handleSave}
+          onCancel={() => setPending(null)}
+        />
+      ) : (
+        <form className="typed-barcode-form" onSubmit={handleTypedSubmit}>
+          <input
+            inputMode="numeric"
+            placeholder="¿No lee la etiqueta? Escribe el código"
+            value={typedBarcode}
+            onChange={(e) => setTypedBarcode(e.target.value)}
+          />
+          <button type="submit" disabled={!typedBarcode.trim()}>
+            Usar
+          </button>
+        </form>
+      )}
       {lastConfirmed && (
         <p className="last-scan-feedback">
           Último confirmado: <strong>{lastConfirmed.barcode}</strong>, total {lastConfirmed.count}

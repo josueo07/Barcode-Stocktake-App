@@ -62,6 +62,18 @@ export function SessionDashboardPage() {
     }
   };
 
+  const handleToggleCost = async (costEnabled: boolean) => {
+    setIsChangingStatus(true);
+    try {
+      await updateSession(session.id, { costEnabled });
+      await refreshSession();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cambiar el ajuste de costo');
+    } finally {
+      setIsChangingStatus(false);
+    }
+  };
+
   const handleAdvanceStatus = async () => {
     if (!nextStatus) return;
     if (
@@ -95,6 +107,17 @@ export function SessionDashboardPage() {
         )}
         {session.status === 'completed' && (
           <p>Este conteo está cerrado. Mira el reporte de diferencias.</p>
+        )}
+        {isSupervisor && (
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={session.costEnabled}
+              disabled={session.status === 'completed' || isChangingStatus}
+              onChange={(e) => handleToggleCost(e.target.checked)}
+            />
+            Anotar costo al escanear
+          </label>
         )}
       </section>
 

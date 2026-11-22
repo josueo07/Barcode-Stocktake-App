@@ -43,6 +43,7 @@ CREATE TABLE stocktake_sessions (
   name TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'draft',
   notes TEXT,
+  cost_enabled INTEGER NOT NULL DEFAULT 0,
   started_at TEXT,
   completed_at TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -53,6 +54,7 @@ CREATE TABLE session_expected_quantities (
   session_id INTEGER NOT NULL REFERENCES stocktake_sessions(id) ON DELETE CASCADE,
   product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   expected_qty INTEGER NOT NULL,
+  unit_cost_cents INTEGER,
   source TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -69,6 +71,9 @@ CREATE TABLE scan_events (
   user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   quantity INTEGER NOT NULL DEFAULT 1,
   late INTEGER NOT NULL DEFAULT 0,
+  lot TEXT,
+  expiry_date TEXT,
+  unit_cost_cents INTEGER,
   scanned_at TEXT NOT NULL,
   synced_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP

@@ -1,0 +1,1 @@
+ALTER TABLE `session_expected_quantities` ADD `unit_cost_cents` integer;

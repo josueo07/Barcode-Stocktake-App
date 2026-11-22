@@ -90,6 +90,7 @@ describe('offline queue per person and session cache', () => {
       name: 'Anual',
       status: 'active' as const,
       notes: null,
+      costEnabled: false,
       startedAt: null,
       completedAt: null,
       createdAt: new Date().toISOString(),

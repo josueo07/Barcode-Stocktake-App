@@ -71,7 +71,7 @@ export function recordScan(
   }
 
   const { late } = scanDisposition(db, sessionId);
-  const product = db.select().from(products).where(eq(products.barcode, submission.barcode)).get();
+  const product = findProductByBarcode(db, submission.barcode);
 
   const inserted = db
     .insert(scanEvents)
@@ -83,6 +83,9 @@ export function recordScan(
       deviceLabel: submission.deviceLabel ?? null,
       userId,
       late,
+      lot: submission.lot ?? null,
+      expiryDate: submission.expiryDate ?? null,
+      unitCostCents: submission.unitCostCents ?? null,
       quantity: submission.quantity ?? 1,
       scannedAt: submission.scannedAt,
     })
@@ -140,15 +143,41 @@ export function countForBarcode(db: AppDatabase, sessionId: number, barcode: str
   return row?.total ?? 0;
 }
 
+/** Strips leading zeros so UPC-A (12 digits) and EAN-13 (leading 0) forms of a code match. */
+export function barcodeKey(barcode: string): string {
+  const trimmed = barcode.trim();
+  return /^\d+$/.test(trimmed) ? trimmed.replace(/^0+(?=\d)/, '') : trimmed;
+}
+
+/**
+ * Finds a product by exact barcode, or by the same digits with different leading zeros
+ * (the pharmacy's file may list "0300450123456" while the scanner reads "300450123456").
+ */
+export function findProductByBarcode(db: AppDatabase, barcode: string) {
+  const exact = db.select().from(products).where(eq(products.barcode, barcode)).get();
+  if (exact) return exact;
+  const key = barcodeKey(barcode);
+  if (!/^\d+$/.test(key)) return undefined;
+  return db
+    .select()
+    .from(products)
+    .where(sql`ltrim(${products.barcode}, '0') = ${key}`)
+    .get();
+}
+
 /** Live per-product counts for a session: expected quantity (if any) joined with counted-so-far. */
 export function getLiveCounts(db: AppDatabase, sessionId: number): LiveCount[] {
   const countRows = db
     .select({
       barcode: scanEvents.barcode,
       productId: scanEvents.productId,
+      sku: products.sku,
+      name: products.name,
+      productBarcode: products.barcode,
       countedQty: sql<number>`coalesce(sum(${scanEvents.quantity}), 0)`,
     })
     .from(scanEvents)
+    .leftJoin(products, eq(scanEvents.productId, products.id))
     .where(and(eq(scanEvents.sessionId, sessionId), eq(scanEvents.late, false)))
     .groupBy(scanEvents.barcode, scanEvents.productId)
     .all();
@@ -157,6 +186,7 @@ export function getLiveCounts(db: AppDatabase, sessionId: number): LiveCount[] {
     .select({
       productId: sessionExpectedQuantities.productId,
       expectedQty: sessionExpectedQuantities.expectedQty,
+      unitCostCents: sessionExpectedQuantities.unitCostCents,
       sku: products.sku,
       barcode: products.barcode,
       name: products.name,
@@ -166,36 +196,41 @@ export function getLiveCounts(db: AppDatabase, sessionId: number): LiveCount[] {
     .where(eq(sessionExpectedQuantities.sessionId, sessionId))
     .all();
 
-  const byBarcode = new Map<string, LiveCount>();
+  // Known products are keyed by id (a scan may use a different leading-zero form of the
+  // barcode); unknown scans by their barcode.
+  const byKey = new Map<string, LiveCount>();
 
   for (const row of expectedRows) {
-    byBarcode.set(row.barcode, {
+    byKey.set(`p${row.productId}`, {
       productId: row.productId,
       barcode: row.barcode,
       sku: row.sku,
       name: row.name,
       expectedQty: row.expectedQty,
+      expectedUnitCostCents: row.unitCostCents ?? null,
       countedQty: 0,
     });
   }
 
   for (const row of countRows) {
-    const existing = byBarcode.get(row.barcode);
+    const key = row.productId !== null ? `p${row.productId}` : `b${row.barcode}`;
+    const existing = byKey.get(key);
     if (existing) {
-      existing.countedQty = row.countedQty;
+      existing.countedQty += row.countedQty;
     } else {
-      byBarcode.set(row.barcode, {
+      byKey.set(key, {
         productId: row.productId,
-        barcode: row.barcode,
-        sku: null,
-        name: null,
+        barcode: row.productBarcode ?? row.barcode,
+        sku: row.sku ?? null,
+        name: row.name ?? null,
         expectedQty: null,
+        expectedUnitCostCents: null,
         countedQty: row.countedQty,
       });
     }
   }
 
-  return Array.from(byBarcode.values()).sort((a, b) => a.barcode.localeCompare(b.barcode));
+  return Array.from(byKey.values()).sort((a, b) => a.barcode.localeCompare(b.barcode));
 }
 
 /** Late scans for a session, newest first, for the supervisor's review list. */

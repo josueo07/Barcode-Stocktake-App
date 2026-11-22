@@ -5,8 +5,24 @@ import type { LiveCount } from '@barcode-stocktake/shared';
 import { LiveCountTable } from '../../src/components/dashboard/LiveCountTable';
 
 const counts: LiveCount[] = [
-  { productId: 1, barcode: '111', sku: 'SKU1', name: 'Widget', expectedQty: 10, countedQty: 7 },
-  { productId: null, barcode: '999', sku: null, name: null, expectedQty: null, countedQty: 2 },
+  {
+    productId: 1,
+    barcode: '111',
+    sku: 'SKU1',
+    name: 'Widget',
+    expectedQty: 10,
+    expectedUnitCostCents: null,
+    countedQty: 7,
+  },
+  {
+    productId: null,
+    barcode: '999',
+    sku: null,
+    name: null,
+    expectedQty: null,
+    expectedUnitCostCents: null,
+    countedQty: 2,
+  },
 ];
 
 describe('LiveCountTable', () => {
