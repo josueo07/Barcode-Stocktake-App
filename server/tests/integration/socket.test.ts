@@ -9,6 +9,7 @@ import { createApp } from '../../src/app';
 import { stocktakeSessions } from '../../src/db/schema';
 import { registerSessionSockets } from '../../src/sockets/sessionNamespace';
 import { createTestDatabase } from '../testDb';
+import { signIn } from '../testApp';
 
 describe('Socket.io live count broadcast', () => {
   let httpServer: http.Server;
@@ -23,15 +24,19 @@ describe('Socket.io live count broadcast', () => {
     const { db } = createTestDatabase();
     const io = new SocketIOServer();
     const app = createApp({ db, io });
+    const { header, token } = signIn(db, 'counter', 'counter');
 
     httpServer = http.createServer(app);
     io.attach(httpServer);
-    registerSessionSockets(io);
+    registerSessionSockets(io, db);
 
     await new Promise<void>((resolve) => httpServer.listen(0, resolve));
     const port = (httpServer.address() as AddressInfo).port;
 
-    clientSocket = ioClient(`http://localhost:${port}`, { transports: ['websocket'] });
+    clientSocket = ioClient(`http://localhost:${port}`, {
+      transports: ['websocket'],
+      auth: { token },
+    });
     await new Promise<void>((resolve) => clientSocket.on('connect', () => resolve()));
 
     const session = db.insert(stocktakeSessions).values({ name: 'Socket Test' }).returning().get();
@@ -44,15 +49,30 @@ describe('Socket.io live count broadcast', () => {
       clientSocket.once(SOCKET_EVENTS.COUNT_UPDATE, resolve);
     });
 
-    await request(httpServer)
-      .post(`/api/sessions/${session.id}/scans`)
-      .send({
-        clientScanId: '55555555-5555-4555-8555-555555555555',
-        barcode: '1234567890123',
-        scannedAt: new Date().toISOString(),
-      });
+    await request(httpServer).post(`/api/sessions/${session.id}/scans`).set(header).send({
+      clientScanId: '55555555-5555-4555-8555-555555555555',
+      barcode: '1234567890123',
+      scannedAt: new Date().toISOString(),
+    });
 
     const payload = await updateReceived;
     expect(payload).toMatchObject({ sessionId: session.id, barcode: '1234567890123', newCount: 1 });
+  });
+
+  it('refuses socket connections without a valid login token', async () => {
+    const { db } = createTestDatabase();
+    const io = new SocketIOServer();
+    httpServer = http.createServer();
+    io.attach(httpServer);
+    registerSessionSockets(io, db);
+    await new Promise<void>((resolve) => httpServer.listen(0, resolve));
+    const port = (httpServer.address() as AddressInfo).port;
+
+    clientSocket = ioClient(`http://localhost:${port}`, {
+      transports: ['websocket'],
+      auth: { token: 'not-a-real-token' },
+    });
+    const error = await new Promise<Error>((resolve) => clientSocket.on('connect_error', resolve));
+    expect(error.message).toMatch(/authentication required/i);
   });
 });

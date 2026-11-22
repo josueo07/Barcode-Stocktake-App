@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { config } from '../../src/config';
+import { AuthContext, type AuthContextValue } from '../../src/auth/AuthContext';
 import { SessionListPage } from '../../src/pages/SessionListPage';
 import { server } from '../mocks/server';
 
@@ -24,6 +25,23 @@ const activeSession = {
   status: 'active' as const,
 };
 
+const supervisorAuth: AuthContextValue = {
+  user: { id: 1, username: 'sup', displayName: 'Sup', role: 'supervisor' },
+  isSupervisor: true,
+  login: async () => {},
+  logout: async () => {},
+};
+
+function renderPage() {
+  return render(
+    <AuthContext.Provider value={supervisorAuth}>
+      <MemoryRouter>
+        <SessionListPage />
+      </MemoryRouter>
+    </AuthContext.Provider>,
+  );
+}
+
 describe('SessionListPage', () => {
   it('lists sessions and only shows a Delete action for draft sessions', async () => {
     server.use(
@@ -32,11 +50,7 @@ describe('SessionListPage', () => {
       ),
     );
 
-    render(
-      <MemoryRouter>
-        <SessionListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
 
     await waitFor(() => expect(screen.getByText('Draft Session')).toBeInTheDocument());
     expect(screen.getByText('Active Session')).toBeInTheDocument();
@@ -45,8 +59,12 @@ describe('SessionListPage', () => {
     const draftItem = items.find((li) => li.textContent?.includes('Draft Session'));
     const activeItem = items.find((li) => li.textContent?.includes('Active Session'));
 
-    expect(within(draftItem as HTMLElement).getByRole('button', { name: /delete/i })).toBeInTheDocument();
-    expect(within(activeItem as HTMLElement).queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+    expect(
+      within(draftItem as HTMLElement).getByRole('button', { name: /delete/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(activeItem as HTMLElement).queryByRole('button', { name: /delete/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('removes a session from the list after a successful delete', async () => {
@@ -60,11 +78,7 @@ describe('SessionListPage', () => {
     );
 
     const user = userEvent.setup();
-    render(
-      <MemoryRouter>
-        <SessionListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
 
     await waitFor(() => expect(screen.getByText('Draft Session')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /delete/i }));
@@ -74,23 +88,26 @@ describe('SessionListPage', () => {
 
   it('shows an error banner when delete fails and keeps the session listed', async () => {
     server.use(
-      http.get(`${config.apiBaseUrl}/api/sessions`, () => HttpResponse.json({ sessions: [draftSession] })),
+      http.get(`${config.apiBaseUrl}/api/sessions`, () =>
+        HttpResponse.json({ sessions: [draftSession] }),
+      ),
       http.delete(`${config.apiBaseUrl}/api/sessions/1`, () =>
-        HttpResponse.json({ error: { message: 'Cannot delete session 1: only draft sessions can be deleted' } }, { status: 409 }),
+        HttpResponse.json(
+          { error: { message: 'Cannot delete session 1: only draft sessions can be deleted' } },
+          { status: 409 },
+        ),
       ),
     );
 
     const user = userEvent.setup();
-    render(
-      <MemoryRouter>
-        <SessionListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
 
     await waitFor(() => expect(screen.getByText('Draft Session')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /delete/i }));
 
-    await waitFor(() => expect(screen.getByText(/only draft sessions can be deleted/i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/only draft sessions can be deleted/i)).toBeInTheDocument(),
+    );
     expect(screen.getByText('Draft Session')).toBeInTheDocument();
   });
 });

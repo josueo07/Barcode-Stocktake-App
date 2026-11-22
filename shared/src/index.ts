@@ -1,4 +1,4 @@
-export type { Product, CreateProductInput, UpdateProductInput } from './types/product';
+export type { Product, CreateProductInput, UpdateProductInput } from './types/product.js';
 
 export type {
   SessionStatus,
@@ -10,7 +10,7 @@ export type {
   ManualExpectedQuantityInput,
   CsvImportSummary,
   CsvImportRowError,
-} from './types/session';
+} from './types/session.js';
 
 export type {
   ScanEvent,
@@ -20,9 +20,19 @@ export type {
   BatchScanItemResult,
   BatchScanResponse,
   LiveCount,
-} from './types/scan';
+} from './types/scan.js';
 
-export type { VarianceReportRow, VarianceReportTotals, VarianceReport } from './types/varianceReport';
+export type {
+  VarianceReportRow,
+  VarianceReportTotals,
+  VarianceReport,
+} from './types/varianceReport.js';
 
-export type { CountUpdatePayload, StatusChangedPayload, ExpectedQtyUpdatedPayload } from './constants';
-export { SOCKET_EVENTS, MAX_BATCH_SCAN_SIZE, SCAN_DEBOUNCE_MS } from './constants';
+export type {
+  CountUpdatePayload,
+  StatusChangedPayload,
+  ExpectedQtyUpdatedPayload,
+} from './constants.js';
+export { SOCKET_EVENTS, MAX_BATCH_SCAN_SIZE, SCAN_DEBOUNCE_MS } from './constants.js';
+
+export type { UserRole, AuthUser, LoginRequest, LoginResponse, UserSummary } from './types/auth.js';

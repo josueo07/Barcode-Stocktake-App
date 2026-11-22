@@ -14,7 +14,7 @@ const { db } = createDatabase(env.databasePath);
 // and the Express app is wired in afterwards via the 'request' event.
 const httpServer = http.createServer();
 const io = new SocketIOServer(httpServer, { cors: { origin: env.clientOrigins } });
-registerSessionSockets(io);
+registerSessionSockets(io, db);
 
 const app = createApp({ db, io });
 httpServer.on('request', app);
@@ -24,7 +24,10 @@ httpServer.listen(env.port, () => {
 
   const lanAddresses = Object.values(os.networkInterfaces())
     .flat()
-    .filter((iface): iface is os.NetworkInterfaceInfo => !!iface && iface.family === 'IPv4' && !iface.internal)
+    .filter(
+      (iface): iface is os.NetworkInterfaceInfo =>
+        !!iface && iface.family === 'IPv4' && !iface.internal,
+    )
     .map((iface) => iface.address);
 
   if (lanAddresses.length > 0) {

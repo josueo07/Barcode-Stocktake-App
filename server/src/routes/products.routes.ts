@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import type { AppDatabase } from '../db/client';
+import { supervisorOnly } from '../middleware/auth';
 import { validateBody } from '../middleware/validateRequest';
 import {
   createProduct,
@@ -28,9 +29,9 @@ export function createProductsRouter(db: AppDatabase): Router {
   const router = Router();
 
   router.get('/', listProducts(db));
-  router.post('/', validateBody(createProductSchema), createProduct(db));
-  router.patch('/:id', validateBody(updateProductSchema), updateProduct(db));
-  router.delete('/:id', deleteProduct(db));
+  router.post('/', supervisorOnly, validateBody(createProductSchema), createProduct(db));
+  router.patch('/:id', supervisorOnly, validateBody(updateProductSchema), updateProduct(db));
+  router.delete('/:id', supervisorOnly, deleteProduct(db));
   router.get('/:barcode', getProductByBarcode(db));
 
   return router;
