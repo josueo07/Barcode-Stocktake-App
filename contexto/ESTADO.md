@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-_Última actualización: 2026-11-22 (revisión de errores)_
+_Última actualización: 2026-11-22 (UPC de 12 dígitos)_
 
 ## Objetivo
 
@@ -73,6 +73,12 @@ Arreglado:
 - Si un conteo se borra con escaneos pendientes en un teléfono, esos escaneos
   quedan como «Error» en vez de reintentarse para siempre.
 - Conteo en vivo: el nombre del producto va primero; mensajes en español.
+- La cámara lee los UPC-A como EAN-13 con un 0 delante («0801108110031»). Ahora la
+  app muestra los 12 dígitos impresos («801108110031»). El servidor ya encontraba
+  el producto con cualquiera de las dos formas.
+- Al importar, un UPC escrito con espacios o guiones («8 01108 11003 1») se guarda
+  sin ellos; un código en notación científica de Excel («8.01108E+11») se rechaza
+  con un aviso para guardar la columna como texto.
 
 Pendiente de decidir:
 - `react-router-dom` 6 tiene dos avisos moderados (redirección con `\` en

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Quagga, { type QuaggaJSCodeReader } from '@ericblade/quagga2';
+import { printedBarcode } from './barcodeFormat';
 import { ScanDebouncer } from './scanDebounce';
 
 export interface BarcodeScannerProps {
@@ -36,8 +37,10 @@ export function BarcodeScanner({
 
   const acceptCode = useCallback(
     (code: string | null) => {
-      if (code && debouncerRef.current.shouldAccept(code)) {
-        onDecode(code);
+      if (!code) return;
+      const barcode = printedBarcode(code);
+      if (debouncerRef.current.shouldAccept(barcode)) {
+        onDecode(barcode);
       }
     },
     [onDecode],
