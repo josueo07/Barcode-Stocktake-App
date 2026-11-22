@@ -39,7 +39,7 @@ describe('Socket.io live count broadcast', () => {
     });
     await new Promise<void>((resolve) => clientSocket.on('connect', () => resolve()));
 
-    const session = db.insert(stocktakeSessions).values({ name: 'Socket Test' }).returning().get();
+    const session = db.insert(stocktakeSessions).values({ name: 'Socket Test', status: 'active' }).returning().get();
 
     clientSocket.emit(SOCKET_EVENTS.JOIN_SESSION, session.id);
     // Give the server a moment to process the room join before triggering the broadcast.

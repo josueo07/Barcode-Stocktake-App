@@ -1,0 +1,1 @@
+ALTER TABLE `scan_events` ADD `late` integer DEFAULT false NOT NULL;

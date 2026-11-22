@@ -3,7 +3,7 @@ import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 import { scanEvents } from '../../src/db/schema';
-import { TEST_PIN, createTestApp } from '../testApp';
+import { TEST_PIN, activateSession, createTestApp } from '../testApp';
 
 describe('Authentication and roles', () => {
   let ctx: ReturnType<typeof createTestApp>;
@@ -60,6 +60,7 @@ describe('Authentication and roles', () => {
   it('lets a counter scan but not manage sessions, products, reports or users', async () => {
     const session = await request(ctx.app).post('/api/sessions').set(ctx.auth).send({ name: 'S' });
     const id = session.body.session.id;
+    activateSession(ctx.db, id);
 
     const scan = await request(ctx.app)
       .post(`/api/sessions/${id}/scans`)
@@ -87,6 +88,7 @@ describe('Authentication and roles', () => {
   it('records which user submitted each scan', async () => {
     const session = await request(ctx.app).post('/api/sessions').set(ctx.auth).send({ name: 'S' });
     const id = session.body.session.id;
+    activateSession(ctx.db, id);
     await request(ctx.app)
       .post(`/api/sessions/${id}/scans/batch`)
       .set(ctx.counter.header)

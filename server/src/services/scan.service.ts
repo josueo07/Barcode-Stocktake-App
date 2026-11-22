@@ -1,15 +1,43 @@
-import { and, eq, sql } from 'drizzle-orm';
-import type { BatchScanItemResult, LiveCount, ScanSubmission } from '@barcode-stocktake/shared';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import type {
+  BatchScanItemResult,
+  LiveCount,
+  ScanSubmission,
+  SessionStatus,
+} from '@barcode-stocktake/shared';
 import type { AppDatabase } from '../db/client';
-import { products, scanEvents, sessionExpectedQuantities } from '../db/schema';
+import { products, scanEvents, sessionExpectedQuantities, stocktakeSessions } from '../db/schema';
+import { AppError } from '../middleware/errorHandler';
 
 type ScanEventRow = typeof scanEvents.$inferSelect;
 
 export interface RecordScanResult {
-  status: 'accepted' | 'duplicate';
+  status: 'accepted' | 'duplicate' | 'late';
   scanEvent: ScanEventRow;
   productId: number | null;
   newCount: number;
+}
+
+/**
+ * Decides, from the session's current status, whether a newly arriving scan counts:
+ * - draft: rejected (the count hasn't started),
+ * - active: counted,
+ * - completed: stored as late for supervisor review, never silently added to a closed count.
+ * Reading the status inside the same synchronous call as the insert means a scan can't slip
+ * in between "closed" being written and the scan being recorded.
+ */
+function scanDisposition(db: AppDatabase, sessionId: number): { late: boolean } {
+  const session = db
+    .select({ status: stocktakeSessions.status })
+    .from(stocktakeSessions)
+    .where(eq(stocktakeSessions.id, sessionId))
+    .get();
+  if (!session) throw new AppError(`Session ${sessionId} not found`, 404);
+  const status: SessionStatus = session.status;
+  if (status === 'draft') {
+    throw new AppError('This count has not started yet. Ask a supervisor to start it.', 409);
+  }
+  return { late: status === 'completed' };
 }
 
 /**
@@ -42,6 +70,7 @@ export function recordScan(
     };
   }
 
+  const { late } = scanDisposition(db, sessionId);
   const product = db.select().from(products).where(eq(products.barcode, submission.barcode)).get();
 
   const inserted = db
@@ -53,6 +82,7 @@ export function recordScan(
       clientScanId: submission.clientScanId,
       deviceLabel: submission.deviceLabel ?? null,
       userId,
+      late,
       quantity: submission.quantity ?? 1,
       scannedAt: submission.scannedAt,
     })
@@ -60,7 +90,7 @@ export function recordScan(
     .get();
 
   return {
-    status: 'accepted',
+    status: late ? 'late' : 'accepted',
     scanEvent: inserted,
     productId: inserted.productId,
     newCount: countForBarcode(db, sessionId, submission.barcode),
@@ -99,7 +129,13 @@ export function countForBarcode(db: AppDatabase, sessionId: number, barcode: str
   const row = db
     .select({ total: sql<number>`coalesce(sum(${scanEvents.quantity}), 0)` })
     .from(scanEvents)
-    .where(and(eq(scanEvents.sessionId, sessionId), eq(scanEvents.barcode, barcode)))
+    .where(
+      and(
+        eq(scanEvents.sessionId, sessionId),
+        eq(scanEvents.barcode, barcode),
+        eq(scanEvents.late, false),
+      ),
+    )
     .get();
   return row?.total ?? 0;
 }
@@ -113,7 +149,7 @@ export function getLiveCounts(db: AppDatabase, sessionId: number): LiveCount[] {
       countedQty: sql<number>`coalesce(sum(${scanEvents.quantity}), 0)`,
     })
     .from(scanEvents)
-    .where(eq(scanEvents.sessionId, sessionId))
+    .where(and(eq(scanEvents.sessionId, sessionId), eq(scanEvents.late, false)))
     .groupBy(scanEvents.barcode, scanEvents.productId)
     .all();
 
@@ -160,4 +196,30 @@ export function getLiveCounts(db: AppDatabase, sessionId: number): LiveCount[] {
   }
 
   return Array.from(byBarcode.values()).sort((a, b) => a.barcode.localeCompare(b.barcode));
+}
+
+/** Late scans for a session, newest first, for the supervisor's review list. */
+export function listLateScans(db: AppDatabase, sessionId: number) {
+  return db
+    .select()
+    .from(scanEvents)
+    .where(and(eq(scanEvents.sessionId, sessionId), eq(scanEvents.late, true)))
+    .orderBy(scanEvents.scannedAt)
+    .all();
+}
+
+/** Moves the given late scans into the count. Returns how many were accepted. */
+export function acceptLateScans(db: AppDatabase, sessionId: number, scanIds: number[]): number {
+  if (scanIds.length === 0) return 0;
+  return db
+    .update(scanEvents)
+    .set({ late: false })
+    .where(
+      and(
+        eq(scanEvents.sessionId, sessionId),
+        eq(scanEvents.late, true),
+        inArray(scanEvents.id, scanIds),
+      ),
+    )
+    .run().changes;
 }

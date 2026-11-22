@@ -5,6 +5,7 @@ import { getCounts } from '../api/scans';
 import { deleteExpectedQuantity, updateSession } from '../api/sessions';
 import { useAuth } from '../auth/AuthContext';
 import { ErrorBanner } from '../components/common/ErrorBanner';
+import { LateScansPanel } from '../components/dashboard/LateScansPanel';
 import { LiveCountTable } from '../components/dashboard/LiveCountTable';
 import { CsvUploadForm } from '../components/import/CsvUploadForm';
 import { ManualEntryForm } from '../components/import/ManualEntryForm';
@@ -63,6 +64,14 @@ export function SessionDashboardPage() {
 
   const handleAdvanceStatus = async () => {
     if (!nextStatus) return;
+    if (
+      nextStatus === 'completed' &&
+      !window.confirm(
+        '¿Cerrar el conteo? Después de cerrarlo no se pueden cambiar los esperados ni borrar escaneos, y lo que llegue tarde quedará aparte para revisión.',
+      )
+    ) {
+      return;
+    }
     setIsChangingStatus(true);
     try {
       await updateSession(session.id, { status: nextStatus });
@@ -95,6 +104,10 @@ export function SessionDashboardPage() {
           <CsvUploadForm sessionId={session.id} onImported={refreshCounts} />
           <ManualEntryForm sessionId={session.id} onAdded={refreshCounts} />
         </section>
+      )}
+
+      {isSupervisor && session.status === 'completed' && (
+        <LateScansPanel sessionId={session.id} onAccepted={refreshCounts} />
       )}
 
       <section className="dashboard-counts">

@@ -8,6 +8,22 @@ import { AppError } from '../middleware/errorHandler';
 import { importCsv } from '../services/csvImport.service';
 import { persistVarianceReportSnapshot } from '../services/varianceReport.service';
 
+/** The only status changes allowed: a count starts once and closes once, never reopens. */
+const ALLOWED_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
+  draft: ['active'],
+  active: ['completed'],
+  completed: [],
+};
+
+function assertNotCompleted(session: { id: number; status: SessionStatus }) {
+  if (session.status === 'completed') {
+    throw new AppError(
+      `Session ${session.id} is closed; its expected quantities can no longer change.`,
+      409,
+    );
+  }
+}
+
 function getSessionOrThrow(db: AppDatabase, id: number) {
   const session = db.select().from(stocktakeSessions).where(eq(stocktakeSessions.id, id)).get();
   if (!session) {
@@ -59,7 +75,13 @@ export function updateSession(db: AppDatabase, io?: SocketIOServer): RequestHand
       const updates: Partial<typeof stocktakeSessions.$inferInsert> = {};
       if (name !== undefined) updates.name = name;
       if (notes !== undefined) updates.notes = notes;
-      if (status !== undefined) {
+      if (status !== undefined && status !== existing.status) {
+        if (!ALLOWED_TRANSITIONS[existing.status].includes(status)) {
+          throw new AppError(
+            `Cannot change session ${id} from "${existing.status}" to "${status}". A count goes draft → active → completed and cannot be reopened.`,
+            409,
+          );
+        }
         updates.status = status;
         if (status === 'active' && !existing.startedAt) {
           updates.startedAt = new Date().toISOString();
@@ -69,6 +91,11 @@ export function updateSession(db: AppDatabase, io?: SocketIOServer): RequestHand
         }
       }
 
+      if (Object.keys(updates).length === 0) {
+        res.json({ session: existing });
+        return;
+      }
+
       const session = db
         .update(stocktakeSessions)
         .set(updates)
@@ -76,12 +103,16 @@ export function updateSession(db: AppDatabase, io?: SocketIOServer): RequestHand
         .returning()
         .get();
 
-      if (status === 'completed') {
+      const statusChanged = status !== undefined && status !== existing.status;
+      if (statusChanged && status === 'completed') {
         persistVarianceReportSnapshot(db, id);
       }
 
-      if (status !== undefined) {
-        io?.to(`session:${id}`).emit(SOCKET_EVENTS.STATUS_CHANGED, { sessionId: id, status: session.status });
+      if (statusChanged) {
+        io?.to(`session:${id}`).emit(SOCKET_EVENTS.STATUS_CHANGED, {
+          sessionId: id,
+          status: session.status,
+        });
       }
 
       res.json({ session });
@@ -119,7 +150,7 @@ export function importSessionCsv(db: AppDatabase, io?: SocketIOServer): RequestH
   return (req, res, next) => {
     try {
       const id = Number(req.params.id);
-      getSessionOrThrow(db, id);
+      assertNotCompleted(getSessionOrThrow(db, id));
 
       if (!req.file) {
         next(new AppError('CSV file is required (multipart field "file")', 400));
@@ -170,7 +201,7 @@ export function addManualExpectedQuantity(db: AppDatabase, io?: SocketIOServer):
   return (req, res, next) => {
     try {
       const id = Number(req.params.id);
-      getSessionOrThrow(db, id);
+      assertNotCompleted(getSessionOrThrow(db, id));
 
       const { barcode, expectedQty, name, sku } = req.body as {
         barcode: string;
@@ -214,7 +245,7 @@ export function deleteExpectedQuantity(db: AppDatabase, io?: SocketIOServer): Re
   return (req, res, next) => {
     try {
       const id = Number(req.params.id);
-      getSessionOrThrow(db, id);
+      assertNotCompleted(getSessionOrThrow(db, id));
 
       const productId = Number(req.params.productId);
       const deleted = db
@@ -229,7 +260,9 @@ export function deleteExpectedQuantity(db: AppDatabase, io?: SocketIOServer): Re
         .get();
 
       if (!deleted) {
-        next(new AppError(`No expected-quantity entry for product ${productId} in session ${id}`, 404));
+        next(
+          new AppError(`No expected-quantity entry for product ${productId} in session ${id}`, 404),
+        );
         return;
       }
 

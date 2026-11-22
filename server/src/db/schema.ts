@@ -112,6 +112,11 @@ export const scanEvents = sqliteTable(
     /** Who submitted the scan (null only for scans recorded before accounts existed). */
     userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
     quantity: integer('quantity').notNull().default(1),
+    /**
+     * True for scans the server received after the session was closed. They are kept for the
+     * supervisor to review but excluded from counts and the variance report until accepted.
+     */
+    late: integer('late', { mode: 'boolean' }).notNull().default(false),
     scannedAt: text('scanned_at').notNull(),
     syncedAt: text('synced_at')
       .notNull()
