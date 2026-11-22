@@ -2,6 +2,14 @@
 
 Cada entrada: fecha, decisión y por qué. La más nueva arriba.
 
+- **2026-11-22 — Un solo supervisor, varios contadores.** Josue lo pidió. El servidor no
+  deja crear ni activar un segundo supervisor. Cada persona tiene su perfil y puede cambiar
+  su propio PIN; al cambiarlo se cierran sus otras sesiones.
+- **2026-11-22 — Estilo iPhone.** Josue pidió un estilo tipo Apple: letra del sistema,
+  colores de iOS, listas agrupadas, botones de 50 px, control segmentado y modo oscuro.
+  Luego pidió el toque **Liquid Glass** (iOS 26): tarjetas y barras de vidrio translúcido
+  sobre un fondo de color suave. Respeta "Reducir transparencia" del iPhone.
+
 - **2026-11-22 — Piloto privado en el Contabo existente.** Se reutiliza Jarvis sin
   comprar otro VPS ni un dominio. Tailscale Serve mantiene el acceso dentro de la
   red privada. Docker Compose separa la aplicación y su SQLite del resto del servidor.

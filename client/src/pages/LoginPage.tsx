@@ -25,9 +25,11 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
-      <h1>Inventario</h1>
-      <form className="login-form" onSubmit={handleSubmit}>
-        <label>
+      <img className="login-icon" src="/icons/icon.svg" alt="" width={72} height={72} />
+      <h1 className="large-title login-title">Inventario J&amp;R</h1>
+      <p className="login-sub">Entra con tu usuario y tu PIN</p>
+      <form className="card form-card login-form" onSubmit={handleSubmit}>
+        <label className="field">
           Usuario
           <input
             autoComplete="username"
@@ -37,7 +39,7 @@ export function LoginPage() {
             required
           />
         </label>
-        <label>
+        <label className="field">
           PIN
           <input
             type="password"

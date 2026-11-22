@@ -23,3 +23,11 @@ export interface UserSummary extends AuthUser {
   active: boolean;
   createdAt: string;
 }
+
+/** What the signed-in person has counted, for their profile screen. */
+export interface ProfileStats {
+  scans: number;
+  units: number;
+  sessions: number;
+  lastScanAt: string | null;
+}

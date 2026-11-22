@@ -13,8 +13,8 @@ export default defineConfig({
         name: 'Inventario J&R',
         short_name: 'Inventario',
         description: 'Conteo de inventario con escáner de códigos de barras.',
-        theme_color: '#1d4ed8',
-        background_color: '#ffffff',
+        theme_color: '#f2f2f7',
+        background_color: '#f2f2f7',
         display: 'standalone',
         start_url: '/',
         icons: [

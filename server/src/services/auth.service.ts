@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { and, eq, gt, lt } from 'drizzle-orm';
+import { and, eq, gt, lt, ne } from 'drizzle-orm';
 import type { AuthUser, UserRole } from '@barcode-stocktake/shared';
 import type { AppDatabase } from '../db/client';
 import { authTokens, users } from '../db/schema';
@@ -50,6 +50,7 @@ export function createUser(db: AppDatabase, input: CreateUserInput): AuthUser {
   if (input.pin.length < MIN_PIN_LENGTH) {
     throw new AppError(`El PIN debe tener al menos ${MIN_PIN_LENGTH} caracteres.`, 400);
   }
+  if (input.role === 'supervisor') assertNoOtherSupervisor(db);
   const username = normalizeUsername(input.username);
   const existing = db.select().from(users).where(eq(users.username, username)).get();
   if (existing) {
@@ -66,6 +67,32 @@ export function createUser(db: AppDatabase, input: CreateUserInput): AuthUser {
     .returning()
     .get();
   return toAuthUser(row);
+}
+
+/**
+ * The pharmacy runs each count with exactly one supervisor and any number of counters.
+ * Throws 409 if another active supervisor exists (pass the id being changed to ignore it).
+ */
+export function assertNoOtherSupervisor(db: AppDatabase, exceptUserId?: number): void {
+  const other = db
+    .select()
+    .from(users)
+    .where(and(eq(users.role, 'supervisor'), eq(users.active, true)))
+    .all()
+    .find((u) => u.id !== exceptUserId);
+  if (other) {
+    throw new AppError(
+      `Ya hay un supervisor (${other.displayName}). Solo puede haber uno; añade a esta persona como contador.`,
+      409,
+    );
+  }
+}
+
+/** Revokes every token of a user except the one given (e.g. after changing their own PIN). */
+export function revokeOtherTokens(db: AppDatabase, userId: number, keepToken: string): void {
+  db.delete(authTokens)
+    .where(and(eq(authTokens.userId, userId), ne(authTokens.tokenHash, hashToken(keepToken))))
+    .run();
 }
 
 /** Checks credentials and issues a new bearer token. Returns null on any failure. */
