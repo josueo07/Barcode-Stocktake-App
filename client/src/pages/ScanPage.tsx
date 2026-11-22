@@ -7,19 +7,20 @@ import { CameraDeviceSelect } from '../components/scanner/CameraDeviceSelect';
 import { RecentScansList } from '../components/scanner/RecentScansList';
 import { SyncStatusBanner } from '../components/scanner/SyncStatusBanner';
 import { useSessionContext } from '../context/useSessionContext';
+import { useAuth } from '../auth/AuthContext';
 import { enqueueScan, getRecentScans, type QueuedScan } from '../db/offlineQueue';
+import { getDeviceLabel } from '../lib/device';
 import { useOfflineSync } from '../hooks/useOfflineSync';
-
-function isLikelyMobile(): boolean {
-  return /Mobi|Android|iPhone/i.test(navigator.userAgent);
-}
 
 export function ScanPage() {
   const { session, socket } = useSessionContext();
+  const { user } = useAuth();
   const syncState = useOfflineSync(session.id);
   const [recentScans, setRecentScans] = useState<QueuedScan[]>([]);
   const [deviceId, setDeviceId] = useState<string | undefined>();
-  const [lastConfirmed, setLastConfirmed] = useState<{ barcode: string; count: number } | null>(null);
+  const [lastConfirmed, setLastConfirmed] = useState<{ barcode: string; count: number } | null>(
+    null,
+  );
 
   const refreshRecent = useCallback(async () => {
     setRecentScans(await getRecentScans(session.id));
@@ -43,16 +44,20 @@ export function ScanPage() {
 
   const handleDecode = useCallback(
     async (barcode: string) => {
-      await enqueueScan(session.id, {
-        clientScanId: uuidv4(),
-        barcode,
-        scannedAt: new Date().toISOString(),
-        deviceLabel: isLikelyMobile() ? 'Phone' : 'PC',
-      });
+      await enqueueScan(
+        session.id,
+        {
+          clientScanId: uuidv4(),
+          barcode,
+          scannedAt: new Date().toISOString(),
+          deviceLabel: getDeviceLabel(),
+        },
+        user?.id,
+      );
       await refreshRecent();
       syncState.flushNow();
     },
-    [session.id, refreshRecent, syncState],
+    [session.id, user?.id, refreshRecent, syncState],
   );
 
   if (session.status !== 'active') {
