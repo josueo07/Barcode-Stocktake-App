@@ -75,10 +75,9 @@ export function BarcodeScanner({
         (err: unknown) => {
           if (cancelled) return;
           if (err) {
+            // Browser errors arrive in English ("NotAllowedError", "Requested device not found").
             setError(
-              err instanceof Error
-                ? err.message
-                : 'No se pudo abrir la cámara. Revisa que Safari tenga permiso de cámara y que ninguna otra app la esté usando.',
+              'No se pudo abrir la cámara. Revisa que Safari tenga permiso de cámara y que ninguna otra app la esté usando. También puedes escribir el código a mano.',
             );
             return;
           }

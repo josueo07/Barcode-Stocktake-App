@@ -66,7 +66,7 @@ export function recordScan(
       status: 'duplicate',
       scanEvent: existing,
       productId: existing.productId,
-      newCount: countForBarcode(db, sessionId, existing.barcode),
+      newCount: countForScan(db, sessionId, existing.productId, existing.barcode),
     };
   }
 
@@ -98,7 +98,7 @@ export function recordScan(
     status: late ? 'late' : 'accepted',
     scanEvent: inserted,
     productId: inserted.productId,
-    newCount: countForBarcode(db, sessionId, submission.barcode),
+    newCount: countForScan(db, sessionId, inserted.productId, submission.barcode),
   };
 }
 
@@ -130,14 +130,25 @@ export function recordScanBatch(
   return { results, accepted };
 }
 
-export function countForBarcode(db: AppDatabase, sessionId: number, barcode: string): number {
+/**
+ * Counted total for the product a scan belongs to (all of its barcode forms, e.g. with or
+ * without a leading zero), or for the raw barcode when the product is unknown.
+ */
+export function countForScan(
+  db: AppDatabase,
+  sessionId: number,
+  productId: number | null,
+  barcode: string,
+): number {
   const row = db
     .select({ total: sql<number>`coalesce(sum(${scanEvents.quantity}), 0)` })
     .from(scanEvents)
     .where(
       and(
         eq(scanEvents.sessionId, sessionId),
-        eq(scanEvents.barcode, barcode),
+        productId !== null
+          ? eq(scanEvents.productId, productId)
+          : and(isNull(scanEvents.productId), eq(scanEvents.barcode, barcode)),
         eq(scanEvents.late, false),
       ),
     )

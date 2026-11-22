@@ -34,7 +34,7 @@ describe('LiveCountTable', () => {
   it('renders expected and unexpected-barcode rows', () => {
     render(<LiveCountTable counts={counts} />);
     expect(screen.getByText('Widget')).toBeInTheDocument();
-    expect(screen.getByText('(unmatched barcode)')).toBeInTheDocument();
+    expect(screen.getByText('(sin nombre)')).toBeInTheDocument();
   });
 
   it('does not render a Remove action when onRemoveExpected is omitted', () => {

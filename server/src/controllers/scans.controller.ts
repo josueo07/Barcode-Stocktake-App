@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { Server as SocketIOServer } from 'socket.io';
 import { MAX_BATCH_SCAN_SIZE, SOCKET_EVENTS, type ScanSubmission } from '@barcode-stocktake/shared';
 import type { AppDatabase } from '../db/client';
@@ -7,7 +7,7 @@ import { scanEvents, stocktakeSessions } from '../db/schema';
 import { AppError } from '../middleware/errorHandler';
 import {
   acceptLateScans,
-  countForBarcode,
+  countForScan,
   getLiveCounts,
   listLateScans,
   recordScan,
@@ -129,13 +129,18 @@ export function voidScan(db: AppDatabase, io?: SocketIOServer): RequestHandler {
       }
 
       const scanId = Number(req.params.scanId);
-      const deleted = db.delete(scanEvents).where(eq(scanEvents.id, scanId)).returning().get();
+      // Only a scan from this count; a closed count's scans can't be removed through another one.
+      const deleted = db
+        .delete(scanEvents)
+        .where(and(eq(scanEvents.id, scanId), eq(scanEvents.sessionId, id)))
+        .returning()
+        .get();
       if (!deleted) {
         next(new AppError(`Scan ${scanId} not found`, 404));
         return;
       }
 
-      const newCount = countForBarcode(db, id, deleted.barcode);
+      const newCount = countForScan(db, id, deleted.productId, deleted.barcode);
       io?.to(`session:${id}`).emit(SOCKET_EVENTS.COUNT_UPDATE, {
         sessionId: id,
         productId: deleted.productId,
