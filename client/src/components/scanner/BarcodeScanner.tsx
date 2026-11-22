@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Quagga, { type QuaggaJSCodeReader } from '@ericblade/quagga2';
+import { readQrFromVideo } from './qrCode';
 import { ScanDebouncer } from './scanDebounce';
 
 export interface BarcodeScannerProps {
@@ -10,6 +11,9 @@ export interface BarcodeScannerProps {
   active: boolean;
   restartCount?: number;
 }
+
+/** How often (ms) a camera frame is checked for a QR code. Quagga only reads 1D barcodes. */
+const QR_SCAN_INTERVAL_MS = 250;
 
 const READERS: QuaggaJSCodeReader[] = [
   'ean_reader',
@@ -23,20 +27,29 @@ interface QuaggaDetectionResult {
   codeResult: { code: string | null };
 }
 
-export function BarcodeScanner({ onDecode, deviceId, active, restartCount = 0 }: BarcodeScannerProps) {
+export function BarcodeScanner({
+  onDecode,
+  deviceId,
+  active,
+  restartCount = 0,
+}: BarcodeScannerProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const cameraStoppedRef = useRef<Promise<void> | null>(null);
   const debouncerRef = useRef(new ScanDebouncer());
   const [error, setError] = useState<string | null>(null);
 
-  const handleDetected = useCallback(
-    (result: QuaggaDetectionResult) => {
-      const code = result.codeResult.code;
+  const acceptCode = useCallback(
+    (code: string | null) => {
       if (code && debouncerRef.current.shouldAccept(code)) {
         onDecode(code);
       }
     },
     [onDecode],
+  );
+
+  const handleDetected = useCallback(
+    (result: QuaggaDetectionResult) => acceptCode(result.codeResult.code),
+    [acceptCode],
   );
 
   useEffect(() => {
@@ -49,6 +62,7 @@ export function BarcodeScanner({ onDecode, deviceId, active, restartCount = 0 }:
 
     let cancelled = false;
     let opened = false;
+    let qrTimer: ReturnType<typeof setInterval> | undefined;
 
     const openCamera = () => {
       if (cancelled) return;
@@ -75,6 +89,16 @@ export function BarcodeScanner({ onDecode, deviceId, active, restartCount = 0 }:
           }
           setError(null);
           Quagga.start();
+          const canvas = document.createElement('canvas');
+          qrTimer = setInterval(() => {
+            const video = viewport.querySelector('video');
+            if (!video) return;
+            try {
+              acceptCode(readQrFromVideo(video, canvas));
+            } catch {
+              // A frame that can't be read is skipped; the next one is tried.
+            }
+          }, QR_SCAN_INTERVAL_MS);
         },
       );
 
@@ -86,11 +110,12 @@ export function BarcodeScanner({ onDecode, deviceId, active, restartCount = 0 }:
 
     return () => {
       cancelled = true;
+      if (qrTimer) clearInterval(qrTimer);
       if (!opened) return;
       Quagga.offDetected(handleDetected);
       cameraStoppedRef.current = Promise.resolve(Quagga.stop()).catch(() => undefined);
     };
-  }, [active, deviceId, handleDetected, restartCount]);
+  }, [active, deviceId, handleDetected, acceptCode, restartCount]);
 
   return (
     <div className="barcode-scanner">

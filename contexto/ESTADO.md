@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-_Última actualización: 2026-11-22 (estilo iPhone y perfil)_
+_Última actualización: 2026-11-22 (lectura de códigos QR)_
 
 ## Objetivo
 
@@ -19,8 +19,8 @@ Base: fork de `ColterPan/Barcode-Stocktake-App` (MIT) en `josueo07/Barcode-Stock
 | Login por persona con PIN; roles **supervisor** y **contador**; bloqueo tras 5 intentos | `server/src/services/auth.service.ts`, `client/src/auth/` | #1 ✅ |
 | Usuarios: el supervisor los crea y desactiva; comando `user:create` | `server/src/routes/users.routes.ts` | #1 ✅ |
 | El servidor controla el cierre: borrador → en curso → cerrado; escaneos tardíos quedan aparte para que el supervisor los acepte | `server/src/services/scan.service.ts` | #2 ✅ |
-| Reabrir la app sin Wi-Fi; cola de escaneos en el teléfono; cada escaneo se envía con el login de quien lo hizo | `client/src/db/offlineQueue.ts`, `client/src/hooks/useOfflineSync.ts` | #3 (abierto) |
-| App en español y diseño para teléfono | `client/` | #4 (abierto) |
+| Reabrir la app sin Wi-Fi; cola de escaneos en el teléfono; cada escaneo se envía con el login de quien lo hizo | `client/src/db/offlineQueue.ts`, `client/src/hooks/useOfflineSync.ts` | #3 ✅ |
+| App en español y diseño para teléfono | `client/` | #4 ✅ |
 | Al escanear: cantidad; costo (opción por conteo); lote y expiración (casilla opcional) | `client/src/components/scanner/ScanEntryPanel.tsx` | #4 |
 | Importar el archivo del cliente en Excel o CSV (UPC, nombre, cantidad, costo; SKU opcional; encabezados en español o inglés) | `server/src/services/csvImport.service.ts` | #4 |
 | Crear producto al momento si no está en el archivo | `ScanEntryPanel.tsx`, `scan.service.ts` | #4 |
@@ -32,6 +32,7 @@ Base: fork de `ColterPan/Barcode-Stocktake-App` (MIT) en `josueo07/Barcode-Stock
 | **Un solo supervisor** y varios contadores (el servidor rechaza un segundo supervisor) | `assertNoOtherSupervisor` en `auth.service.ts` | #5 |
 | Perfil de cada persona: nombre, rol, actividad (escaneos, unidades, conteos), cambiar su PIN, cerrar sesión | `client/src/pages/ProfilePage.tsx`, `/api/auth/me*` | #5 |
 | Pantalla Personas: supervisor arriba, lista de contadores, añadir contador | `client/src/pages/UsersPage.tsx` | #5 |
+| La cámara también lee **códigos QR** (Quagga2 solo lee barras). Si el QR es GS1 (cajas de medicina), se usa el GTIN que trae después de "01" | `client/src/components/scanner/qrCode.ts` (jsQR) | QR |
 
 ## Piloto activo en Contabo
 
