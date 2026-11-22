@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../../src/config';
 import { AuthContext, type AuthContextValue } from '../../src/auth/AuthContext';
 import { SessionListPage } from '../../src/pages/SessionListPage';
@@ -44,6 +44,7 @@ function renderPage() {
 }
 
 describe('SessionListPage', () => {
+  afterEach(() => vi.restoreAllMocks());
   it('lists sessions and only shows a Delete action for draft sessions', async () => {
     server.use(
       http.get(`${config.apiBaseUrl}/api/sessions`, () =>
@@ -69,6 +70,7 @@ describe('SessionListPage', () => {
   });
 
   it('removes a session from the list after a successful delete', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValue(true);
     let sessions = [draftSession];
     server.use(
       http.get(`${config.apiBaseUrl}/api/sessions`, () => HttpResponse.json({ sessions })),
@@ -82,12 +84,17 @@ describe('SessionListPage', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByText('Draft Session')).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: /borrar/i }));
+    const deleteButton = screen.getByRole('button', { name: /borrar/i });
+    await user.click(deleteButton);
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining(draftSession.name));
+    expect(sessions).toEqual([draftSession]);
+    await user.click(deleteButton);
 
     await waitFor(() => expect(screen.getByText(/todavía no hay conteos/i)).toBeInTheDocument());
   });
 
   it('shows an error banner when delete fails and keeps the session listed', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     server.use(
       http.get(`${config.apiBaseUrl}/api/sessions`, () =>
         HttpResponse.json({ sessions: [draftSession] }),
