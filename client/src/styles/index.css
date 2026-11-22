@@ -992,3 +992,253 @@ tfoot th {
   padding: 16px;
   margin: 16px 0;
 }
+
+/* =====================================================================
+ * Liquid Glass (estilo iOS 26): superficies de vidrio translúcido con
+ * desenfoque, brillo especular en el borde y fondo de color suave detrás
+ * para que el vidrio se note. Si el sistema pide menos transparencia,
+ * o el navegador no soporta backdrop-filter, todo vuelve a sólido.
+ * ===================================================================== */
+
+:root {
+  --glass: rgba(255, 255, 255, 0.55);
+  --glass-strong: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-edge: rgba(0, 0, 0, 0.06);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 80, 0.12), 0 1px 2px rgba(31, 38, 80, 0.08);
+  --glass-blur: blur(24px) saturate(180%);
+  --glass-shine: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.12) 45%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --glass: rgba(44, 44, 48, 0.5);
+    --glass-strong: rgba(44, 44, 48, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-edge: rgba(255, 255, 255, 0.04);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --glass-shine: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.16) 0%,
+      rgba(255, 255, 255, 0.03) 45%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+}
+
+/* Fondo de color suave y fijo: sin él, el vidrio no se ve. */
+body {
+  background:
+    radial-gradient(60vmax 60vmax at 0% 0%, rgba(0, 122, 255, 0.18), transparent 60%),
+    radial-gradient(50vmax 50vmax at 100% 20%, rgba(175, 82, 222, 0.14), transparent 60%),
+    radial-gradient(60vmax 60vmax at 50% 100%, rgba(52, 199, 89, 0.12), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background:
+      radial-gradient(60vmax 60vmax at 0% 0%, rgba(10, 132, 255, 0.28), transparent 60%),
+      radial-gradient(50vmax 50vmax at 100% 20%, rgba(191, 90, 242, 0.2), transparent 60%),
+      radial-gradient(60vmax 60vmax at 50% 100%, rgba(48, 209, 88, 0.14), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+  }
+}
+
+/* Superficies de vidrio. */
+.nav-bar,
+.card,
+.list-group,
+.stat,
+.csv-upload-form,
+.manual-entry-form,
+.scan-entry-panel,
+.typed-barcode-form,
+.recent-scans-list,
+.table-scroll,
+.late-scans,
+.segmented,
+.button-destructive {
+  background-color: var(--glass);
+  background-image: var(--glass-shine);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 0.5px solid var(--glass-border);
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-border),
+    inset 0 -1px 0 var(--glass-edge);
+}
+
+.card,
+.list-group,
+.csv-upload-form,
+.manual-entry-form,
+.scan-entry-panel,
+.recent-scans-list,
+.table-scroll,
+.late-scans {
+  border-radius: 22px;
+}
+
+.stat {
+  border-radius: 20px;
+}
+
+table,
+.table-scroll table {
+  background: transparent;
+}
+
+/* Barra superior flotante, como en iOS 26. */
+.nav-bar {
+  position: sticky;
+  top: calc(8px + env(safe-area-inset-top));
+  margin: calc(8px + env(safe-area-inset-top)) 12px 0;
+  padding: 0 8px 0 18px;
+  border-radius: 999px;
+  min-height: 52px;
+  border-bottom: 0.5px solid var(--glass-border);
+}
+
+/* Selector Resumen / Escanear / Reporte: cápsula de vidrio con la opción activa en relieve. */
+.segmented {
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.segmented a {
+  border-radius: 999px;
+  min-height: 40px;
+}
+
+.segmented a.active {
+  background: var(--glass-strong);
+  background-image: var(--glass-shine);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 var(--glass-border);
+}
+
+/* Botones: cápsula con brillo. */
+button {
+  border-radius: 999px;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%);
+  box-shadow:
+    0 6px 16px rgba(0, 122, 255, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.button-secondary {
+  background-color: var(--glass-strong);
+  background-image: var(--glass-shine);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 var(--glass-border);
+}
+
+.button-destructive {
+  border-radius: 999px;
+}
+
+.button-plain,
+.link-button {
+  background: none;
+  background-image: none;
+  box-shadow: none;
+  border-radius: 999px;
+}
+
+button:disabled {
+  box-shadow: none;
+}
+
+/* Campos: vidrio hundido. */
+input,
+select {
+  background: rgba(118, 118, 128, 0.12);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.avatar {
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.nav-bar .avatar {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.status-badge,
+.role-chip {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.sync-status-banner,
+.last-scan-feedback,
+.error-banner {
+  border-radius: 18px;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+.barcode-scanner {
+  border-radius: 24px;
+  box-shadow: var(--glass-shadow);
+}
+
+/* Accesibilidad y navegadores viejos: vidrio sólido. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass: var(--surface);
+    --glass-strong: var(--surface);
+  }
+  .nav-bar,
+  .card,
+  .list-group,
+  .stat,
+  .segmented,
+  .csv-upload-form,
+  .manual-entry-form,
+  .scan-entry-panel,
+  .typed-barcode-form,
+  .recent-scans-list,
+  .table-scroll,
+  .late-scans,
+  .button-secondary,
+  .button-destructive {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass: var(--surface);
+    --glass-strong: var(--surface);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+  button:active:not(:disabled) {
+    transform: none;
+  }
+}
